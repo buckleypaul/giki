@@ -1,0 +1,68 @@
+version: 2
+
+before:
+  hooks:
+    # Build frontend assets before building Go binaries
+    - make frontend-build
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # Exclude invalid combinations
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X github.com/buckleypaul/giki/internal/cli.Version={{.Version}}
+      - -X github.com/buckleypaul/giki/internal/cli.Commit={{.Commit}}
+      - -X github.com/buckleypaul/giki/internal/cli.Date={{.Date}}
+    main: ./cmd/giki
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+      - zip
+    files:
+      - LICENSE
+      - README.md
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+
+brews:
+  - name: giki
+    repository:
+      owner: buckleypaul
+      name: homebrew-tap
+    homepage: https://github.com/buckleypaul/giki
+    description: Turn any git repository into a browsable wiki
+    license: MIT
+    test: |
+      system "#{bin}/giki version"
+    install: |
+      bin.install "giki"

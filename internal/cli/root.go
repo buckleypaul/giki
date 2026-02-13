@@ -31,6 +31,7 @@ You can browse local repositories or clone remote ones.`,
 func init() {
 	rootCmd.Flags().IntVarP(&port, "port", "p", 4242, "Port to run the server on")
 	rootCmd.Flags().StringVarP(&branch, "branch", "b", "", "Branch to browse (defaults to HEAD)")
+	rootCmd.AddCommand(versionCmd)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
