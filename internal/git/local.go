@@ -2,6 +2,7 @@ package git
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -10,6 +11,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // LocalProvider implements GitProvider for local git repositories.
@@ -78,8 +80,52 @@ func (p *LocalProvider) Tree(branch string) (*TreeNode, error) {
 	}
 
 	// For other branches, read from git object store (committed state only)
-	// This will be implemented when we need branch switching (Step 15)
-	return nil, fmt.Errorf("reading non-current branches not yet implemented")
+	return p.buildTreeFromCommit(branch)
+}
+
+// buildTreeFromCommit builds a tree from the git object store for a specific branch.
+// This returns the committed state only (no uncommitted changes).
+func (p *LocalProvider) buildTreeFromCommit(branch string) (*TreeNode, error) {
+	// Get the branch reference
+	branchRef := plumbing.NewBranchReferenceName(branch)
+	ref, err := p.repo.Reference(branchRef, true)
+	if err != nil {
+		return nil, fmt.Errorf("branch '%s' not found: %w", branch, err)
+	}
+
+	// Get the commit object
+	commit, err := p.repo.CommitObject(ref.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get commit: %w", err)
+	}
+
+	// Get the tree object
+	tree, err := commit.Tree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tree: %w", err)
+	}
+
+	// Build the tree structure
+	root := &TreeNode{
+		Name:     "",
+		Path:     "",
+		IsDir:    true,
+		Children: []TreeNode{},
+	}
+
+	// Walk the tree recursively
+	err = tree.Files().ForEach(func(file *object.File) error {
+		p.addPathToTree(root, file.Name)
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk tree: %w", err)
+	}
+
+	// Sort the tree
+	p.sortTree(root)
+
+	return root, nil
 }
 
 // buildWorkingTreeWithIgnore builds a tree from the working directory,
@@ -342,8 +388,54 @@ func (p *LocalProvider) FileContent(path, branch string) ([]byte, error) {
 	}
 
 	// For other branches, read from git object store (committed state only)
-	// This will be implemented when we need branch switching (Step 15)
-	return nil, fmt.Errorf("reading non-current branches not yet implemented")
+	return p.readFileFromCommit(branch, path)
+}
+
+// readFileFromCommit reads a file from the git object store for a specific branch.
+// This returns the committed state only (no uncommitted changes).
+func (p *LocalProvider) readFileFromCommit(branch, path string) ([]byte, error) {
+	// Get the branch reference
+	branchRef := plumbing.NewBranchReferenceName(branch)
+	ref, err := p.repo.Reference(branchRef, true)
+	if err != nil {
+		return nil, fmt.Errorf("branch '%s' not found: %w", branch, err)
+	}
+
+	// Get the commit object
+	commit, err := p.repo.CommitObject(ref.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get commit: %w", err)
+	}
+
+	// Get the tree object
+	tree, err := commit.Tree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tree: %w", err)
+	}
+
+	// Get the file from the tree
+	file, err := tree.File(path)
+	if err != nil {
+		// Check if it's a "file not found" error
+		if err == object.ErrFileNotFound {
+			return nil, fmt.Errorf("file not found")
+		}
+		return nil, fmt.Errorf("failed to get file: %w", err)
+	}
+
+	// Read the file contents
+	reader, err := file.Reader()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file reader: %w", err)
+	}
+	defer reader.Close()
+
+	content, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file content: %w", err)
+	}
+
+	return content, nil
 }
 
 // Branches returns a list of all branches in the repository.

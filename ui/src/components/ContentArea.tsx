@@ -16,6 +16,7 @@ export default function ContentArea({ branch }: ContentAreaProps) {
   const navigate = useNavigate();
   const [content, setContent] = useState<'loading' | 'file' | 'directory' | 'notfound' | 'empty'>('loading');
   const [dirChildren, setDirChildren] = useState<TreeNode[]>([]);
+  const [lastSuccessfulPath, setLastSuccessfulPath] = useState<string | null>(null);
 
   // Get the path from the URL, removing leading slash
   const urlPath = location.pathname.slice(1);
@@ -29,10 +30,12 @@ export default function ContentArea({ branch }: ContentAreaProps) {
         try {
           await fetchFile('README.md', branch);
           setContent('file');
+          setLastSuccessfulPath('');
           return;
         } catch {
           // No README.md, show empty state
           setContent('empty');
+          setLastSuccessfulPath('');
           return;
         }
       }
@@ -41,6 +44,7 @@ export default function ContentArea({ branch }: ContentAreaProps) {
       try {
         await fetchFile(urlPath, branch);
         setContent('file');
+        setLastSuccessfulPath(urlPath);
         return;
       } catch (fileError) {
         // File doesn't exist, try to treat as directory
@@ -65,6 +69,7 @@ export default function ContentArea({ branch }: ContentAreaProps) {
               // No README, show directory listing
               setDirChildren(node.children || []);
               setContent('directory');
+              setLastSuccessfulPath(urlPath);
               return;
             }
           }
@@ -73,12 +78,20 @@ export default function ContentArea({ branch }: ContentAreaProps) {
         }
 
         // Neither file nor directory found
+        // If we had a successful path before and now it's missing (likely due to branch change),
+        // redirect to root instead of showing 404
+        if (lastSuccessfulPath !== null && lastSuccessfulPath === urlPath) {
+          console.log('File no longer exists on this branch, redirecting to root');
+          navigate('/', { replace: true });
+          return;
+        }
+
         setContent('notfound');
       }
     }
 
     loadContent();
-  }, [urlPath, branch, navigate]);
+  }, [urlPath, branch, navigate, lastSuccessfulPath]);
 
   // Scroll to anchor if present in URL
   useEffect(() => {

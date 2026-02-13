@@ -1120,3 +1120,256 @@ func TestStatus_UntrackedFiles(t *testing.T) {
 		t.Error("expected dirty repository with untracked files (isDirty: true), got isDirty: false")
 	}
 }
+
+// TestTree_NonHEADBranch tests that reading from a non-HEAD branch returns committed state.
+func TestTree_NonHEADBranch(t *testing.T) {
+	// Create a temporary git repository
+	tempDir := t.TempDir()
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	// Create initial file on main branch and commit
+	mainFile := filepath.Join(tempDir, "main.txt")
+	if err := os.WriteFile(mainFile, []byte("main content"), 0644); err != nil {
+		t.Fatalf("failed to write main file: %v", err)
+	}
+
+	if _, err := w.Add("main.txt"); err != nil {
+		t.Fatalf("failed to add file: %v", err)
+	}
+
+	if _, err := w.Commit("initial commit on main", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	// Create a new branch "feature"
+	headRef, err := repo.Head()
+	if err != nil {
+		t.Fatalf("failed to get HEAD: %v", err)
+	}
+
+	featureBranchRef := plumbing.NewBranchReferenceName("feature")
+	err = repo.Storer.SetReference(plumbing.NewHashReference(featureBranchRef, headRef.Hash()))
+	if err != nil {
+		t.Fatalf("failed to create feature branch: %v", err)
+	}
+
+	// Checkout feature branch
+	if err := w.Checkout(&git.CheckoutOptions{Branch: featureBranchRef}); err != nil {
+		t.Fatalf("failed to checkout feature branch: %v", err)
+	}
+
+	// Create a file on feature branch and commit
+	featureFile := filepath.Join(tempDir, "feature.txt")
+	if err := os.WriteFile(featureFile, []byte("feature content"), 0644); err != nil {
+		t.Fatalf("failed to write feature file: %v", err)
+	}
+
+	if _, err := w.Add("feature.txt"); err != nil {
+		t.Fatalf("failed to add feature file: %v", err)
+	}
+
+	if _, err := w.Commit("add feature file", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit feature file: %v", err)
+	}
+
+	// Switch back to main branch
+	mainBranchRef := plumbing.NewBranchReferenceName("master")
+	if err := w.Checkout(&git.CheckoutOptions{Branch: mainBranchRef}); err != nil {
+		t.Fatalf("failed to checkout main branch: %v", err)
+	}
+
+	// Create provider on main branch
+	provider, err := NewLocalProvider(tempDir, "master")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Get tree for feature branch (not current branch)
+	tree, err := provider.Tree("feature")
+	if err != nil {
+		t.Fatalf("failed to get tree for feature branch: %v", err)
+	}
+
+	// Verify feature branch has both main.txt and feature.txt
+	found := make(map[string]bool)
+	for _, child := range tree.Children {
+		found[child.Name] = true
+	}
+
+	if !found["main.txt"] {
+		t.Error("expected main.txt to be in feature branch tree")
+	}
+
+	if !found["feature.txt"] {
+		t.Error("expected feature.txt to be in feature branch tree")
+	}
+
+	// Get tree for main branch (current branch)
+	tree, err = provider.Tree("master")
+	if err != nil {
+		t.Fatalf("failed to get tree for main branch: %v", err)
+	}
+
+	// Verify main branch has only main.txt
+	found = make(map[string]bool)
+	for _, child := range tree.Children {
+		found[child.Name] = true
+	}
+
+	if !found["main.txt"] {
+		t.Error("expected main.txt to be in main branch tree")
+	}
+
+	if found["feature.txt"] {
+		t.Error("expected feature.txt NOT to be in main branch tree")
+	}
+}
+
+// TestFileContent_NonHEADBranch tests that reading file from non-HEAD branch returns committed content.
+func TestFileContent_NonHEADBranch(t *testing.T) {
+	// Create a temporary git repository
+	tempDir := t.TempDir()
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	// Create file on main branch with initial content
+	testFile := filepath.Join(tempDir, "test.md")
+	if err := os.WriteFile(testFile, []byte("main content"), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	if _, err := w.Add("test.md"); err != nil {
+		t.Fatalf("failed to add file: %v", err)
+	}
+
+	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	// Create feature branch
+	headRef, err := repo.Head()
+	if err != nil {
+		t.Fatalf("failed to get HEAD: %v", err)
+	}
+
+	featureBranchRef := plumbing.NewBranchReferenceName("feature")
+	err = repo.Storer.SetReference(plumbing.NewHashReference(featureBranchRef, headRef.Hash()))
+	if err != nil {
+		t.Fatalf("failed to create feature branch: %v", err)
+	}
+
+	// Checkout feature branch
+	if err := w.Checkout(&git.CheckoutOptions{Branch: featureBranchRef}); err != nil {
+		t.Fatalf("failed to checkout feature branch: %v", err)
+	}
+
+	// Modify file on feature branch and commit
+	if err := os.WriteFile(testFile, []byte("feature content"), 0644); err != nil {
+		t.Fatalf("failed to write modified file: %v", err)
+	}
+
+	if _, err := w.Add("test.md"); err != nil {
+		t.Fatalf("failed to add modified file: %v", err)
+	}
+
+	if _, err := w.Commit("modify on feature", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit modified file: %v", err)
+	}
+
+	// Checkout main branch
+	mainBranchRef := plumbing.NewBranchReferenceName("master")
+	if err := w.Checkout(&git.CheckoutOptions{Branch: mainBranchRef}); err != nil {
+		t.Fatalf("failed to checkout main branch: %v", err)
+	}
+
+	// Create provider on main branch
+	provider, err := NewLocalProvider(tempDir, "master")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Read file from main branch (current branch - should read from working tree)
+	content, err := provider.FileContent("test.md", "master")
+	if err != nil {
+		t.Fatalf("failed to read file from main branch: %v", err)
+	}
+
+	if string(content) != "main content" {
+		t.Errorf("expected 'main content' from main branch, got: %s", string(content))
+	}
+
+	// Read file from feature branch (non-HEAD branch - should read from git object store)
+	content, err = provider.FileContent("test.md", "feature")
+	if err != nil {
+		t.Fatalf("failed to read file from feature branch: %v", err)
+	}
+
+	if string(content) != "feature content" {
+		t.Errorf("expected 'feature content' from feature branch, got: %s", string(content))
+	}
+}
+
+// TestFileContent_HEADBranchWithUncommittedChanges tests that current branch reads include uncommitted changes.
+func TestFileContent_HEADBranchWithUncommittedChanges(t *testing.T) {
+	// Create a temporary git repository
+	tempDir := t.TempDir()
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	// Create and commit file
+	testFile := filepath.Join(tempDir, "test.md")
+	if err := os.WriteFile(testFile, []byte("committed content"), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	if _, err := w.Add("test.md"); err != nil {
+		t.Fatalf("failed to add file: %v", err)
+	}
+
+	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	// Modify file without committing (uncommitted change)
+	if err := os.WriteFile(testFile, []byte("uncommitted content"), 0644); err != nil {
+		t.Fatalf("failed to modify file: %v", err)
+	}
+
+	// Create provider
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Read file from current branch (should include uncommitted changes)
+	content, err := provider.FileContent("test.md", "")
+	if err != nil {
+		t.Fatalf("failed to read file: %v", err)
+	}
+
+	if string(content) != "uncommitted content" {
+		t.Errorf("expected 'uncommitted content' (working tree), got: %s", string(content))
+	}
+}

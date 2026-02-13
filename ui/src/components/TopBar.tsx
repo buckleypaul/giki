@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchStatus } from '../api/client';
 import type { RepoStatus } from '../api/types';
+import { BranchSelector } from './BranchSelector';
 import './TopBar.css';
 
 interface TopBarProps {
@@ -31,7 +32,7 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
               {status.source.split('/').pop() || status.source}
             </span>
             <span className="topbar-separator">•</span>
-            <span className="topbar-branch">{status.branch}</span>
+            <BranchSelector />
             {status.isDirty && <span className="topbar-dirty" title="Uncommitted changes">●</span>}
           </>
         ) : (

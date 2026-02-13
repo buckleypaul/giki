@@ -1,0 +1,26 @@
+.branch-selector {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+.branch-selector:hover {
+  background-color: var(--bg-hover);
+}
+
+.branch-selector:focus {
+  border-color: var(--link-color);
+  box-shadow: 0 0 0 2px var(--link-color-alpha);
+}
+
+.branch-selector-loading {
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+}
