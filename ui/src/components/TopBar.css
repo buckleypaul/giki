@@ -1,0 +1,89 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1rem;
+  height: 60px;
+  background-color: var(--bg-secondary, #f5f5f5);
+  border-bottom: 1px solid var(--border-color, #ddd);
+}
+
+.topbar-toggle {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  color: var(--text-primary, #333);
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.topbar-toggle:hover {
+  background-color: var(--bg-hover, rgba(0, 0, 0, 0.05));
+}
+
+.topbar-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.topbar-source {
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-separator {
+  color: var(--text-secondary, #666);
+}
+
+.topbar-branch {
+  color: var(--text-secondary, #666);
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.topbar-dirty {
+  color: #f59e0b;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.topbar-error {
+  color: #ef4444;
+}
+
+.topbar-loading {
+  color: var(--text-secondary, #666);
+}
+
+@media (prefers-color-scheme: dark) {
+  .topbar {
+    background-color: var(--bg-secondary, #1e1e1e);
+    border-bottom-color: var(--border-color, #333);
+  }
+
+  .topbar-toggle {
+    color: var(--text-primary, #e0e0e0);
+  }
+
+  .topbar-toggle:hover {
+    background-color: var(--bg-hover, rgba(255, 255, 255, 0.1));
+  }
+
+  .topbar-source {
+    color: var(--text-primary, #e0e0e0);
+  }
+
+  .topbar-separator,
+  .topbar-branch,
+  .topbar-loading {
+    color: var(--text-secondary, #a0a0a0);
+  }
+}
