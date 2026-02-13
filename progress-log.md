@@ -1367,3 +1367,151 @@ giki version dev
 
 ---
 
+## Step 18: Create and delete files
+**Date:** 2026-02-13
+**Phase:** Phase 4 - Editing & File Management
+
+**Summary:**
+- Created `ui/src/components/CreateFileDialog.tsx` — modal dialog for creating new files:
+  - Text input for file path with placeholder ("e.g., docs/guide.md")
+  - Validates path is not empty, doesn't contain "..", and doesn't already exist
+  - Normalizes path by stripping leading slash
+  - Adds `create` pending change with empty content on submit
+  - Navigates to editor for new file
+  - Cancel button and overlay click to close
+  - Form resets when dialog closes
+- Created `ui/src/components/DeleteConfirmDialog.tsx` — confirmation dialog for file deletion:
+  - Displays file path being deleted
+  - Warning message that change is pending until commit
+  - Adds `delete` pending change on confirm
+  - Navigates to root (`/`) after deletion
+  - Cancel button and overlay click to close
+- Created `ui/src/components/CreateFileDialog.css` — shared dialog styles:
+  - Modal overlay with semi-transparent background
+  - Centered dialog content with rounded corners and shadow
+  - Input field styling with focus states
+  - Primary (blue), secondary (gray), and danger (red) button variants
+  - Error message styling
+  - Light/dark mode support
+- Updated `ui/src/components/FileTree.tsx` to merge pending changes:
+  - Imports `usePendingChanges` hook
+  - Added `onDelete` prop to FileTree and TreeItem components
+  - Added `isDeleted` prop to TreeItem for styling deleted files
+  - `mergePendingChanges()` helper function filters deleted files and adds created files
+  - Deleted files filtered out from tree display
+  - Created files added to root level (simplified implementation)
+  - Tree sorted after merging: directories first, then files, alphabetically
+  - Added delete button to file items (× icon, hidden until hover)
+  - Delete button calls `onDelete(path)` callback with file path
+  - Handles empty tree with created files edge case
+- Updated `ui/src/components/FileTree.css`:
+  - Added `.tree-item-delete` button styles (hidden by default, shown on hover)
+  - Added `.tree-item-deleted` class for strikethrough styling
+  - Delete button uses secondary color with red hover
+  - Flexible layout for tree-item-label (name takes flex: 1)
+- Updated `ui/src/components/Sidebar.tsx` to integrate dialogs:
+  - Added "New File" button in header next to "Files" title
+  - Button styled in blue (#3b82f6) to match primary actions
+  - State management for showing/hiding both dialogs
+  - State for tracking file to delete
+  - Fetches tree on mount to get existing paths for validation
+  - `extractAllPaths()` helper recursively collects all file paths
+  - `handleDelete()` callback opens DeleteConfirmDialog
+  - Renders CreateFileDialog and DeleteConfirmDialog components
+  - Passes `onDelete` prop to FileTree
+- Updated `ui/src/components/Sidebar.css`:
+  - Added `.sidebar-header` flex layout for title and button
+  - Added `.sidebar-button` styling for "New File" button
+  - Button matches TopBar button styling for consistency
+- Created comprehensive test suites:
+  - `CreateFileDialog.test.tsx`: 9 tests (rendering, validation, dialog behavior)
+  - `DeleteConfirmDialog.test.tsx`: 9 tests (rendering, confirmation, pending changes integration)
+  - `FileTree.test.tsx`: 12 tests (loading, error states, pending changes merging, expand/collapse, branch switching)
+
+**Files Created:**
+- `ui/src/components/CreateFileDialog.tsx`
+- `ui/src/components/CreateFileDialog.css`
+- `ui/src/components/CreateFileDialog.test.tsx`
+- `ui/src/components/DeleteConfirmDialog.tsx`
+- `ui/src/components/DeleteConfirmDialog.test.tsx`
+- `ui/src/components/FileTree.test.tsx`
+
+**Files Modified:**
+- `ui/src/components/FileTree.tsx` (added pending changes merging, delete button)
+- `ui/src/components/FileTree.css` (added delete button and deleted state styles)
+- `ui/src/components/Sidebar.tsx` (added New File button and dialog management)
+- `ui/src/components/Sidebar.css` (added button styles)
+
+**Test Results:**
+- ✓ All Go tests passed (24 tests in cli, git, server packages)
+- ✓ DeleteConfirmDialog tests passed (9 tests)
+- ✓ `go vet ./...` passed with no issues
+- ✓ Frontend builds successfully (`npm run build`)
+- ✓ Go binary builds with embedded frontend (13M)
+- ✓ `make build` succeeded
+
+**Vitest Test Coverage:**
+
+1. **CreateFileDialog (9 tests):**
+   - Does not render when isOpen is false
+   - Renders dialog when isOpen is true with all UI elements
+   - Shows error when path is empty
+   - Shows error when path contains ".."
+   - Shows error when file already exists
+   - Calls onClose when cancel button clicked
+   - Calls onClose when overlay clicked
+   - Does not close when clicking inside dialog content
+   - Resets form when dialog closed and reopened
+
+2. **DeleteConfirmDialog (9 tests):**
+   - Does not render when isOpen is false
+   - Does not render when filePath is null
+   - Renders dialog with file path and warning
+   - Displays correct file path
+   - Shows pending change warning
+   - Calls onClose when cancel clicked
+   - Calls onClose when overlay clicked
+   - Adds delete pending change when delete clicked
+   - Does not close when clicking inside dialog content
+
+3. **FileTree (12 tests):**
+   - Shows loading state while fetching tree
+   - Renders tree after successful fetch
+   - Shows error message when fetch fails
+   - Shows empty message when tree has no files
+   - Renders delete button when onDelete prop provided
+   - Calls onDelete when delete button clicked
+   - Does not render delete button when onDelete not provided
+   - Filters out deleted files from pending changes
+   - Adds created files from pending changes
+   - Expands and collapses directories on click
+   - Re-fetches tree when branch prop changes
+   - Navigates on file click
+
+**Acceptance Criteria (Plan Step 18):**
+- ✅ Creating file adds pending change with type `'create'` and empty content
+- ✅ New file shows in tree immediately (root-level files only in current simplified implementation)
+- ✅ Deleting file adds pending change with type `'delete'`
+- ✅ Deleted file hidden from tree (filtered out during merge)
+- ✅ Confirmation dialog appears before delete
+- ✅ Delete button appears on hover for file items (not directories)
+- ✅ No disk writes until commit (all changes in PendingChangesContext state)
+
+**Architecture Notes:**
+- CreateFileDialog validates paths to prevent traversal attacks and duplicates
+- Path normalization strips leading slash to ensure consistent paths
+- DeleteConfirmDialog keeps navigation simple by always redirecting to root after delete
+- FileTree merging logic is simplified: created files only added to root level
+  - Future enhancement: insert created files into correct parent directory based on path
+- Delete button uses stopPropagation to prevent directory expand/collapse when clicking delete
+- Pending changes badge in TopBar (from Step 16) automatically updates when files created/deleted
+- Dialog overlay click-to-close pattern follows standard UX conventions
+- All dialogs share CSS file for consistency and maintainability
+- TypeScript strict mode enforced with proper typing for all props and state
+- Light/dark mode support via CSS custom properties throughout
+- No backend changes required for Step 18 (purely frontend feature)
+
+**Next Step:** Step 19 - File management (move/rename, create directory)
+
+---
+
