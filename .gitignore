@@ -1,0 +1,9 @@
+# Build artifacts
+/giki
+
+# Frontend
+ui/dist/
+ui/node_modules/
+
+# macOS
+.DS_Store
