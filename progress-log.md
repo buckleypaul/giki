@@ -27,3 +27,22 @@ This document tracks the completion of each step in the Giki implementation plan
 
 ---
 
+## Step 2: GitHub repository setup
+**Date:** 2026-02-13
+**Phase:** Phase 1 - Foundation
+
+**Summary:**
+- Created GitHub repository `buckleypaul/giki` using `gh repo create`
+- Added remote origin pointing to `git@github.com:buckleypaul/giki.git`
+- Pushed initial scaffold to GitHub (main branch)
+- Repository description: "A Go CLI tool that turns any git repository into a browsable wiki in the browser"
+
+**Test Results:**
+- ✓ `git remote -v` shows GitHub remote (fetch and push)
+- ✓ `gh repo view` successfully displays repository information
+- ✓ Initial commits pushed to GitHub main branch
+
+**Next Step:** Step 3 - Vite + React scaffold with embed.FS wiring
+
+---
+
