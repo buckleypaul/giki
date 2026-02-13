@@ -27,26 +27,26 @@ The browser UI is a three-zone layout:
 - **Sidebar** — Collapsible file tree for navigating the repository. Directories expand/collapse in place. Clicking a file loads it in the main content area.
 - **Main content area** — Renders markdown files with full formatting. Relative links between markdown files navigate within giki. Non-markdown files display as syntax-highlighted source.
 
-## MVP Features (v0.1)
+## Features
 
-Read-only browsing of any git repository:
+### Browsing & Navigation
 
 - **File explorer sidebar** — Tree navigation with expand/collapse directories
 - **Markdown rendering** — Full markdown support; relative links between files navigate within the wiki
 - **Top status bar** — Displays source (path or URL), current branch, and dirty/clean state for local repos
 - **Local repo support** — `giki .` or `giki /path/to/repo` serves a local git repository
-- **Remote repo support** — `giki https://github.com/org/repo` fetches content via GitHub/GitLab APIs (no local clone required)
+- **Remote repo support** — `giki https://github.com/org/repo` clones the repo locally, then serves the clone (all local features apply)
 - **Branch selection** — Switch between branches via `--branch` flag or in-browser branch picker
 
-## Future Features
-
-Editing and repository management capabilities:
+### Editing & Management
 
 - **Create/edit/delete pages** — In-browser markdown editor for creating new files, editing existing ones, or deleting pages
 - **File management** — Move files and create folders from the UI
 - **Local staging & commit** — All changes are staged locally; a "Commit" button writes them as a git commit
+- **Search** — File name fuzzy search and full-text content search across the repo
 - **Theming** — Customizable appearance and theme support
-- **Authentication** — SSH key and personal access token (PAT) support for pushing changes to remote repositories (scope TBD)
+- **API-based remote browsing** — Browse remote repos via GitHub/GitLab APIs without cloning
+- **Authentication** — SSH key and personal access token (PAT) support for pushing changes and API access
 
 ## Distribution
 
@@ -58,4 +58,4 @@ Editing and repository management capabilities:
 - **Go binary** with an embedded HTTP server serving static assets (HTML/CSS/JS bundled into the binary)
 - **Git provider abstraction** — A common interface over GitHub API, GitLab API, and local git operations, so the UI layer doesn't care where the repo lives
 - **Local git operations** — Via go-git (pure Go) or shelling out to the git CLI
-- **Remote repo access** — API-based fetching of file trees and content (no cloning); supports pagination for large repos
+- **Remote repo access** — Supports both cloning locally and API-based fetching of file trees and content (no cloning required)
