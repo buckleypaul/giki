@@ -2,9 +2,14 @@ package git
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 )
 
 // LocalProvider implements GitProvider for local git repositories.
@@ -60,9 +65,232 @@ func NewLocalProvider(path, branch string) (*LocalProvider, error) {
 }
 
 // Tree returns the complete file tree for the given branch.
-// Implementation deferred to Phase 2 (Step 6).
+// For the current branch, reads from working tree (includes uncommitted changes).
+// For other branches, reads from git object store (committed state only).
+// Respects .gitignore rules.
 func (p *LocalProvider) Tree(branch string) (*TreeNode, error) {
-	return nil, fmt.Errorf("Tree not yet implemented")
+	// Determine if this is the current/HEAD branch
+	isCurrentBranch := (branch == "" || branch == p.branch)
+
+	if isCurrentBranch {
+		// Read from working tree (includes uncommitted changes)
+		return p.buildWorkingTreeWithIgnore()
+	}
+
+	// For other branches, read from git object store (committed state only)
+	// This will be implemented when we need branch switching (Step 15)
+	return nil, fmt.Errorf("reading non-current branches not yet implemented")
+}
+
+// buildWorkingTreeWithIgnore builds a tree from the working directory,
+// combining tracked and untracked files, respecting .gitignore rules.
+func (p *LocalProvider) buildWorkingTreeWithIgnore() (*TreeNode, error) {
+	worktree, err := p.repo.Worktree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Load .gitignore patterns
+	patterns, err := p.loadGitignorePatterns()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load .gitignore: %w", err)
+	}
+
+	// Build set of all files (tracked + untracked non-ignored)
+	files := make(map[string]bool)
+
+	// Get worktree status to find tracked and untracked files
+	status, err := worktree.Status()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get status: %w", err)
+	}
+
+	// Add all files from status (both tracked and untracked)
+	for path, fileStatus := range status {
+		// Skip deleted files
+		if fileStatus.Worktree == git.Deleted {
+			continue
+		}
+
+		// Check if file should be ignored
+		if p.shouldIgnore(path, patterns, false) {
+			continue
+		}
+
+		files[path] = true
+	}
+
+	// Walk the filesystem to catch any files not in status
+	// (fully committed, unmodified files)
+	err = filepath.Walk(p.path, func(absPath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Get relative path
+		relPath, err := filepath.Rel(p.path, absPath)
+		if err != nil {
+			return err
+		}
+
+		// Skip the .git directory itself
+		if relPath == ".git" || strings.HasPrefix(relPath, ".git"+string(filepath.Separator)) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Skip root directory
+		if relPath == "." {
+			return nil
+		}
+
+		// Skip directories (we only track files; directories are implicit)
+		if info.IsDir() {
+			return nil
+		}
+
+		// Check if should be ignored
+		if p.shouldIgnore(relPath, patterns, info.IsDir()) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Normalize path separators to forward slashes (git convention)
+		gitPath := filepath.ToSlash(relPath)
+		files[gitPath] = true
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk filesystem: %w", err)
+	}
+
+	// Convert file set to sorted slice
+	var filePaths []string
+	for path := range files {
+		filePaths = append(filePaths, path)
+	}
+	sort.Strings(filePaths)
+
+	// Build nested tree structure
+	root := &TreeNode{
+		Name:     "",
+		Path:     "",
+		IsDir:    true,
+		Children: []TreeNode{},
+	}
+
+	for _, path := range filePaths {
+		p.addPathToTree(root, path)
+	}
+
+	// Sort tree (directories first, then alphabetically)
+	p.sortTree(root)
+
+	return root, nil
+}
+
+// loadGitignorePatterns loads .gitignore patterns from the repository.
+func (p *LocalProvider) loadGitignorePatterns() ([]gitignore.Pattern, error) {
+	var patterns []gitignore.Pattern
+
+	// Read .gitignore file if it exists
+	gitignorePath := filepath.Join(p.path, ".gitignore")
+	if _, err := os.Stat(gitignorePath); err == nil {
+		content, err := os.ReadFile(gitignorePath)
+		if err != nil {
+			return nil, err
+		}
+
+		// Parse patterns
+		lines := strings.Split(string(content), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			// Skip empty lines and comments
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			patterns = append(patterns, gitignore.ParsePattern(line, nil))
+		}
+	}
+
+	return patterns, nil
+}
+
+// shouldIgnore checks if a path should be ignored based on .gitignore patterns.
+func (p *LocalProvider) shouldIgnore(path string, patterns []gitignore.Pattern, isDir bool) bool {
+	// Normalize to forward slashes for matching
+	path = filepath.ToSlash(path)
+
+	// Split path into parts for matching
+	parts := strings.Split(path, "/")
+
+	// Check against patterns
+	matcher := gitignore.NewMatcher(patterns)
+	return matcher.Match(parts, isDir)
+}
+
+// addPathToTree adds a file path to the tree structure.
+func (p *LocalProvider) addPathToTree(root *TreeNode, path string) {
+	parts := strings.Split(path, "/")
+	current := root
+
+	for i, part := range parts {
+		isLastPart := i == len(parts)-1
+
+		// Look for existing child with this name
+		var found *TreeNode
+		for j := range current.Children {
+			if current.Children[j].Name == part {
+				found = &current.Children[j]
+				break
+			}
+		}
+
+		if found != nil {
+			current = found
+		} else {
+			// Create new node
+			fullPath := strings.Join(parts[:i+1], "/")
+			newNode := TreeNode{
+				Name:     part,
+				Path:     fullPath,
+				IsDir:    !isLastPart,
+				Children: []TreeNode{},
+			}
+
+			current.Children = append(current.Children, newNode)
+			current = &current.Children[len(current.Children)-1]
+		}
+	}
+}
+
+// sortTree sorts the tree recursively: directories first, then files, both alphabetically (case-insensitive).
+func (p *LocalProvider) sortTree(node *TreeNode) {
+	if len(node.Children) == 0 {
+		return
+	}
+
+	// Sort children
+	sort.Slice(node.Children, func(i, j int) bool {
+		// Directories come before files
+		if node.Children[i].IsDir != node.Children[j].IsDir {
+			return node.Children[i].IsDir
+		}
+
+		// Within same type, sort alphabetically (case-insensitive)
+		return strings.ToLower(node.Children[i].Name) < strings.ToLower(node.Children[j].Name)
+	})
+
+	// Recursively sort children
+	for i := range node.Children {
+		p.sortTree(&node.Children[i])
+	}
 }
 
 // FileContent returns the raw bytes of a file at the given path.

@@ -7,31 +7,38 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/buckleypaul/giki/internal/git"
 	"github.com/buckleypaul/giki/ui"
 )
 
 // Server represents the HTTP server for the Giki application.
 type Server struct {
-	mux  *http.ServeMux
-	port int
+	mux      *http.ServeMux
+	port     int
+	provider git.GitProvider
 }
 
 // New creates a new Server instance.
-func New(port int) *Server {
+func New(port int, provider git.GitProvider) *Server {
 	mux := http.NewServeMux()
+
+	s := &Server{
+		mux:      mux,
+		port:     port,
+		provider: provider,
+	}
+
+	// Mount API handlers
+	mux.HandleFunc("GET /api/tree", s.handleTree)
 
 	// Check if we're in dev mode
 	devMode := os.Getenv("GIKI_DEV") == "1"
 
-	// Mount SPA handler as catch-all
-	// API handlers will be mounted before this in later steps
+	// Mount SPA handler as catch-all (must be last)
 	spaHandler := NewSPAHandler(ui.Dist, devMode)
 	mux.Handle("/", spaHandler)
 
-	return &Server{
-		mux:  mux,
-		port: port,
-	}
+	return s
 }
 
 // Start begins listening on the configured port.

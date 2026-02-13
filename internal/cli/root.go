@@ -77,9 +77,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create and start the server
-	// Note: provider will be passed to server in Phase 2 when API endpoints are implemented
-	_ = provider // unused for now
-	srv := server.New(port)
+	srv := server.New(port, provider)
 
 	// Start server in a goroutine so we can open the browser
 	errChan := make(chan error, 1)
