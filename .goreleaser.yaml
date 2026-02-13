@@ -63,6 +63,7 @@ brews:
       owner: buckleypaul
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    folder: Formula
     homepage: https://github.com/buckleypaul/giki
     description: Turn any git repository into a browsable wiki
     license: MIT
