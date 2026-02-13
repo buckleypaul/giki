@@ -347,9 +347,36 @@ func (p *LocalProvider) FileContent(path, branch string) ([]byte, error) {
 }
 
 // Branches returns a list of all branches in the repository.
-// Implementation deferred to Phase 2 (Step 8).
+// The current HEAD branch is marked as IsDefault.
 func (p *LocalProvider) Branches() ([]BranchInfo, error) {
-	return nil, fmt.Errorf("Branches not yet implemented")
+	// Get iterator for all branches
+	iter, err := p.repo.Branches()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list branches: %w", err)
+	}
+	defer iter.Close()
+
+	var branches []BranchInfo
+
+	// Iterate through all branches
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
+		// Extract short branch name (e.g., "main" from "refs/heads/main")
+		branchName := ref.Name().Short()
+
+		// Mark as default if it matches the current branch
+		isDefault := branchName == p.branch
+
+		branches = append(branches, BranchInfo{
+			Name:      branchName,
+			IsDefault: isDefault,
+		})
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to iterate branches: %w", err)
+	}
+
+	return branches, nil
 }
 
 // Status returns the current repository status.

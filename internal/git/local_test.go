@@ -797,3 +797,154 @@ func TestFileContent_NestedFile(t *testing.T) {
 		t.Errorf("expected content %q, got %q", testContent, string(content))
 	}
 }
+
+// TestBranches_MultipleBranches tests that all branches are returned with default flagged.
+func TestBranches_MultipleBranches(t *testing.T) {
+	tempDir := t.TempDir()
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	// Create initial commit
+	testFile := filepath.Join(tempDir, "test.txt")
+	if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	if _, err := w.Add("test.txt"); err != nil {
+		t.Fatalf("failed to add file: %v", err)
+	}
+
+	commit, err := w.Commit("initial commit", &git.CommitOptions{})
+	if err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	// Get the current branch name
+	headRef, err := repo.Head()
+	if err != nil {
+		t.Fatalf("failed to get HEAD: %v", err)
+	}
+	currentBranch := headRef.Name().Short()
+
+	// Create additional branches
+	devRef := plumbing.NewHashReference(plumbing.NewBranchReferenceName("dev"), commit)
+	if err := repo.Storer.SetReference(devRef); err != nil {
+		t.Fatalf("failed to create dev branch: %v", err)
+	}
+
+	featureRef := plumbing.NewHashReference(plumbing.NewBranchReferenceName("feature"), commit)
+	if err := repo.Storer.SetReference(featureRef); err != nil {
+		t.Fatalf("failed to create feature branch: %v", err)
+	}
+
+	// Create provider (should use current branch as default)
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Get branches
+	branches, err := provider.Branches()
+	if err != nil {
+		t.Fatalf("Branches() failed: %v", err)
+	}
+
+	// Should have 3 branches
+	if len(branches) != 3 {
+		t.Fatalf("expected 3 branches, got %d", len(branches))
+	}
+
+	// Build a map for easier verification
+	branchMap := make(map[string]BranchInfo)
+	for _, b := range branches {
+		branchMap[b.Name] = b
+	}
+
+	// Verify all branches exist
+	if _, ok := branchMap[currentBranch]; !ok {
+		t.Errorf("expected branch %q to be in list", currentBranch)
+	}
+	if _, ok := branchMap["dev"]; !ok {
+		t.Error("expected branch 'dev' to be in list")
+	}
+	if _, ok := branchMap["feature"]; !ok {
+		t.Error("expected branch 'feature' to be in list")
+	}
+
+	// Verify only current branch is marked as default
+	defaultCount := 0
+	for _, b := range branches {
+		if b.IsDefault {
+			defaultCount++
+			if b.Name != currentBranch {
+				t.Errorf("expected default branch to be %q, got %q", currentBranch, b.Name)
+			}
+		}
+	}
+
+	if defaultCount != 1 {
+		t.Errorf("expected exactly 1 default branch, got %d", defaultCount)
+	}
+}
+
+// TestBranches_SingleBranch tests that a repo with only one branch works correctly.
+func TestBranches_SingleBranch(t *testing.T) {
+	tempDir := t.TempDir()
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	// Create initial commit
+	testFile := filepath.Join(tempDir, "test.txt")
+	if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	if _, err := w.Add("test.txt"); err != nil {
+		t.Fatalf("failed to add file: %v", err)
+	}
+
+	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	// Create provider
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Get branches
+	branches, err := provider.Branches()
+	if err != nil {
+		t.Fatalf("Branches() failed: %v", err)
+	}
+
+	// Should have exactly 1 branch
+	if len(branches) != 1 {
+		t.Fatalf("expected 1 branch, got %d", len(branches))
+	}
+
+	// That branch should be marked as default
+	if !branches[0].IsDefault {
+		t.Error("expected single branch to be marked as default")
+	}
+
+	// Branch name should be non-empty
+	if branches[0].Name == "" {
+		t.Error("expected branch name to be non-empty")
+	}
+}

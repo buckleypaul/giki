@@ -273,3 +273,56 @@ This document tracks the completion of each step in the Giki implementation plan
 
 ---
 
+## Step 8: `/api/branches` endpoint
+**Date:** 2026-02-13
+**Phase:** Phase 2 - Core API Endpoints
+
+**Summary:**
+- Implemented `LocalProvider.Branches()` method in `internal/git/local.go`
+- Iterates through all branches using `repo.Branches()` from go-git
+- Marks the current HEAD branch with `IsDefault: true`
+- Returns `[]BranchInfo` containing branch names and default flag
+- Created `internal/server/handler_branches.go` with `GET /api/branches` endpoint
+- Returns JSON array of all branches in the repository
+- Created comprehensive unit tests in `internal/git/local_test.go` (2 new test functions)
+- Created integration tests in `internal/server/handler_branches_test.go` (2 test functions)
+
+**Files Created:**
+- `internal/server/handler_branches.go`
+- `internal/server/handler_branches_test.go`
+
+**Files Modified:**
+- `internal/git/local.go` (implemented Branches method)
+- `internal/server/server.go` (registered /api/branches endpoint)
+- `internal/git/local_test.go` (added 2 unit tests for Branches)
+
+**Test Results:**
+- ✓ All unit tests passed (18 test functions in `internal/git/local_test.go`)
+- ✓ All integration tests passed (2 test functions in `internal/server/handler_branches_test.go`)
+- ✓ All tests in `internal/cli/root_test.go` passed
+- ✓ All tests in `internal/server/handler_tree_test.go` passed
+- ✓ All tests in `internal/server/handler_file_test.go` passed
+- ✓ `go vet ./...` passed with no issues
+- ✓ `make build` succeeded (binary: 9.4M)
+
+**Unit Tests:**
+- ✓ Temp repo with multiple branches returns all branches with correct default flag
+- ✓ Single branch repository works correctly with branch marked as default
+- ✓ Verify only one branch marked as IsDefault
+- ✓ Branch names are non-empty
+
+**Integration Tests:**
+- ✓ `GET /api/branches` returns JSON array with correct Content-Type
+- ✓ Multiple branches returned with correct names
+- ✓ Current/HEAD branch marked with `isDefault: true`
+- ✓ Single branch repository returns one branch marked as default
+
+**Acceptance Criteria (PRD 3.7):**
+- ✅ All local branches listed in response
+- ✅ Default branch (HEAD) flagged with `isDefault: true`
+- ✅ Endpoint returns valid JSON array
+
+**Next Step:** Step 9 - `/api/status` endpoint
+
+---
+
