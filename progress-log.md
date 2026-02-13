@@ -929,3 +929,203 @@ This document tracks the completion of each step in the Giki implementation plan
 
 ---
 
+## Step 15: Branch selection (dropdown + non-HEAD branch reads)
+**Date:** 2026-02-13
+**Phase:** Phase 3 - Frontend — Read-Only Browsing
+
+**Summary:**
+- Created `ui/src/context/BranchContext.tsx` — React context for managing selected branch state across the application
+  - `BranchProvider` component that wraps the app
+  - `useBranch()` hook for accessing selected branch and setter
+  - Initializes with current branch from `/api/status` on mount
+- Created `ui/src/components/BranchSelector.tsx` — dropdown component in TopBar
+  - Fetches all branches from `/api/branches` on mount
+  - Displays all branches with default branch marked as "(default)"
+  - Calls `setSelectedBranch()` when selection changes
+  - Loading state while fetching branches
+- Updated backend `internal/git/local.go` to read from git object store for non-HEAD branches:
+  - Implemented `buildTreeFromCommit(branch)` method — builds tree from git object store for specific branch
+  - Implemented `readFileFromCommit(branch, path)` method — reads file from git object store
+  - Modified `Tree(branch)` to call `buildTreeFromCommit()` for non-current branches
+  - Modified `FileContent(path, branch)` to call `readFileFromCommit()` for non-current branches
+  - Current/HEAD branch still reads from working tree (includes uncommitted changes)
+  - Other branches read from git object store (committed state only)
+- Wired BranchContext into application:
+  - Updated `ui/src/App.tsx` to wrap `<Layout />` with `<BranchProvider>`
+  - Updated `ui/src/components/Layout.tsx` to use `useBranch()` hook instead of local state
+  - Updated `ui/src/components/TopBar.tsx` to render `<BranchSelector />` component
+  - Branch selection automatically triggers re-fetch of tree and content via dependency arrays
+- Added redirect logic to `ui/src/components/ContentArea.tsx`:
+  - Tracks last successful path to detect when files go missing after branch change
+  - Redirects to "/" when a previously-found file is no longer present on new branch
+- Installed `@testing-library/user-event` dependency for testing user interactions
+- Created comprehensive test suites:
+  - `ui/src/components/BranchSelector.test.tsx` — 8 tests for dropdown component
+  - `internal/git/local_test.go` — 3 new tests for non-HEAD branch reading
+
+**Files Created:**
+- `ui/src/context/BranchContext.tsx`
+- `ui/src/components/BranchSelector.tsx`, `ui/src/components/BranchSelector.css`
+- `ui/src/components/BranchSelector.test.tsx`
+
+**Files Modified:**
+- `internal/git/local.go` (added imports, `buildTreeFromCommit`, `readFileFromCommit` methods)
+- `internal/git/local_test.go` (added 3 tests: `TestTree_NonHEADBranch`, `TestFileContent_NonHEADBranch`, `TestFileContent_HEADBranchWithUncommittedChanges`)
+- `ui/src/App.tsx` (wrapped with BranchProvider)
+- `ui/src/components/Layout.tsx` (removed local branch state, use useBranch hook)
+- `ui/src/components/TopBar.tsx` (added BranchSelector component)
+- `ui/src/components/ContentArea.tsx` (added redirect logic for missing files)
+- `ui/package.json`, `ui/package-lock.json` (added @testing-library/user-event dependency)
+
+**Test Results:**
+- ✓ All 22 Go tests passed in `internal/git/local_test.go`
+  - `TestTree_NonHEADBranch`: Verified feature branch has both main.txt and feature.txt, main branch has only main.txt
+  - `TestFileContent_NonHEADBranch`: Verified reading from main branch returns "main content", reading from feature branch returns "feature content"
+  - `TestFileContent_HEADBranchWithUncommittedChanges`: Verified current branch reads include uncommitted changes
+- ✓ All integration tests passed in `internal/server/` (10 tests)
+- ✓ All CLI tests passed in `internal/cli/` (5 test functions, 14 subtests)
+- ✓ All 109 Vitest tests passed across 10 test suites
+  - BranchSelector: 8 tests (loading state, rendering branches, selection changes, default marking, error handling)
+  - All previous component tests still passing
+- ✓ `go vet ./...` passed with no issues
+- ✓ Frontend builds successfully (`npm run build`)
+- ✓ Go binary builds with embedded frontend (13M)
+- ✓ `make build` succeeded
+
+**Vitest Test Coverage (BranchSelector):**
+1. Loading state renders while fetching branches
+2. All branches from API rendered in dropdown
+3. Current branch shown as selected
+4. Default branch marked with "(default)" suffix
+5. Selection change calls `setSelectedBranch()`
+6. Empty branches list handled
+7. Fetch error handled gracefully with console.error
+8. Select element has aria-label for accessibility
+
+**Go Test Coverage (Non-HEAD Branch Reading):**
+1. **Tree reading from non-HEAD branch:**
+   - Feature branch includes both main.txt and feature.txt
+   - Main branch includes only main.txt (not feature.txt)
+   - Verified git object store reading works correctly
+
+2. **File content reading from non-HEAD branch:**
+   - Reading from main branch returns "main content"
+   - Reading from feature branch returns "feature content"
+   - Verified correct content returned from git object store
+
+3. **Current branch includes uncommitted changes:**
+   - Modified file without committing
+   - Verified reading returns "uncommitted content" from working tree
+
+**Acceptance Criteria (PRD 3.7):**
+- ✅ `--branch dev` works (already implemented in Step 4-5)
+- ✅ Dropdown lists all branches
+- ✅ Switching updates tree (via dependency arrays in FileTree and ContentArea)
+- ✅ Missing file redirects to `/` (implemented in ContentArea)
+- ✅ Current branch reads from working tree (includes uncommitted changes)
+- ✅ Other branches read from git object store (committed state only)
+
+**Architecture Notes:**
+- BranchContext uses React Context API to manage selected branch globally
+- Branch selection flows from BranchSelector → setSelectedBranch → useBranch hook → Layout → Sidebar/ContentArea
+- All components that consume branch via props automatically re-fetch when branch changes (useEffect dependencies)
+- Backend uses go-git's commit.Tree() API to read from git object store for non-HEAD branches
+- Tree walking for non-HEAD branches uses tree.Files().ForEach() instead of filesystem walking
+- File reading for non-HEAD branches uses tree.File(path) to get blob, then blob.Reader() to get content
+- Security: path validation still applies to prevent traversal attacks
+- Type safety: All components use TypeScript strict mode with type-only imports for verbatimModuleSyntax
+
+**Next Step:** Step 16 - Pending changes state management
+
+---
+
+## Step 26: Release infrastructure (GoReleaser + Homebrew tap + CI)
+**Date:** 2026-02-13
+**Phase:** Phase 5 - Distribution
+**Note:** Implemented ahead of schedule at user request
+
+**Summary:**
+- Added version management system:
+  - Created `internal/cli/version.go` with `Version`, `Commit`, `Date` variables (injected at build time)
+  - Added `version` subcommand to CLI via `versionCmd` registered in `root.go`
+  - Updated `Makefile` with `LDFLAGS` to inject version info via `-X` flags
+- Created GoReleaser configuration (`.goreleaser.yaml`):
+  - Cross-platform builds: macOS (arm64/amd64), Linux (arm64/amd64), Windows (amd64)
+  - Frontend build hook: `make frontend-build` runs before Go builds
+  - Static binaries: `CGO_ENABLED=0` for portability
+  - Archives: tar.gz for Unix, zip for Windows (includes LICENSE and README)
+  - Homebrew tap: auto-publishes formula to `buckleypaul/homebrew-tap`
+  - Checksums and changelog generation
+- Created GitHub Actions workflows:
+  - `release.yml`: Triggered on `v*` tags, runs GoReleaser to build and publish release + Homebrew formula
+  - `ci.yml`: Triggered on push to main and PRs, runs Go tests + frontend tests + build verification
+- Created distribution files:
+  - `README.md`: Project overview, installation instructions (Homebrew/direct download/source), usage examples, architecture notes
+  - `LICENSE`: MIT License with 2026 copyright to Paul Buckley
+- Updated `.gitignore` to exclude `dist/` directory (GoReleaser build artifacts)
+
+**Files Created:**
+- `internal/cli/version.go`
+- `.goreleaser.yaml`
+- `.github/workflows/release.yml`
+- `.github/workflows/ci.yml`
+- `README.md`
+- `LICENSE`
+
+**Files Modified:**
+- `internal/cli/root.go` (registered version subcommand)
+- `Makefile` (added VERSION, COMMIT, DATE variables and LDFLAGS for version injection)
+- `.gitignore` (added dist/ to ignore GoReleaser artifacts)
+
+**Test Results:**
+- ✓ All 24 Go tests passed (`go test -v ./...`)
+- ✓ All 109 Vitest tests passed (`cd ui && npm test`)
+- ✓ Build succeeded with version injection: `make build` produced binary with ldflags
+- ✓ Version command works: `./giki version` shows "giki version dev" with commit hash and build date
+- ✓ GoReleaser validation passed: `goreleaser check` (1 deprecation warning for `brews`, but still valid)
+- ✓ Snapshot build succeeded: `goreleaser build --snapshot --clean --single-target`
+- ✓ Snapshot binary tested: `./dist/giki_darwin_arm64_v8.0/giki version` shows "0.0.0-SNAPSHOT-0976f42"
+
+**Version Command Output:**
+```
+$ ./giki version
+giki version dev
+  commit: 0976f42
+  built:  2026-02-13T22:45:53Z
+```
+
+**GoReleaser Configuration Highlights:**
+- 5 platform targets (darwin/linux arm64+amd64, windows amd64)
+- Version injection via ldflags using GoReleaser templates ({{.Version}}, {{.Commit}}, {{.Date}})
+- Homebrew formula includes `test: giki version` to verify installation
+- Changelog filters exclude docs/test/chore/ci commits
+
+**GitHub Actions Workflows:**
+- **Release workflow**: Go 1.25 + Node.js 20, full checkout with `fetch-depth: 0`, GoReleaser with `GITHUB_TOKEN`
+- **CI workflow**: Same setup, runs tests + build + verifies version command works
+
+**Installation Methods (Post-Release):**
+1. Homebrew: `brew install buckleypaul/tap/giki` (after v0.1.0 tag pushed)
+2. Direct download: Download from GitHub releases page
+3. From source: `make build` (requires Go 1.25+ and Node.js 20+)
+
+**Release Process (Next Steps):**
+1. Create and push v0.1.0 tag: `git tag -a v0.1.0 -m "Release v0.1.0" && git push origin v0.1.0`
+2. GitHub Actions will automatically:
+   - Build binaries for all platforms
+   - Create GitHub release with binaries and checksums
+   - Push Homebrew formula to `buckleypaul/homebrew-tap`
+3. Users can then install via: `brew install buckleypaul/tap/giki`
+
+**Acceptance Criteria (Plan Step 26):**
+- ✅ GoReleaser config for macOS/Linux/Windows
+- ✅ GitHub Actions workflow for releases on tags
+- ✅ Homebrew formula auto-published to tap
+- ✅ README and LICENSE files created
+- ✅ Version command implemented
+- ✅ CI workflow for automated testing
+
+**Next Step:** Create v0.1.0 tag and push to trigger release (user action), then continue with Step 16-25 for editing features
+
+---
+

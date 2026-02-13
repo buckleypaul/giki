@@ -60,6 +60,51 @@ For production builds, `make build` runs the frontend build first, then embeds t
 
 5. **Clone-first for remote repos**: Remote repositories are cloned to `~/.giki/repos/` before serving, rather than using platform APIs for browsing.
 
+## Release Infrastructure
+
+Giki uses GoReleaser with GitHub Actions for automated release management and distribution:
+
+### Version Management
+- **Version variables**: `internal/cli/version.go` defines `Version`, `Commit`, and `Date` variables (initialized to dev/none/unknown)
+- **Build-time injection**: Makefile uses `-ldflags` to inject version info at build time
+- **Version command**: `giki version` subcommand displays version, commit hash, and build date
+
+### GoReleaser Configuration (`.goreleaser.yaml`)
+- **Cross-platform builds**: macOS (arm64/amd64), Linux (arm64/amd64), Windows (amd64)
+- **Frontend build hook**: Runs `make frontend-build` before Go builds to ensure ui/dist/ exists
+- **Static binaries**: `CGO_ENABLED=0` for portability
+- **Archives**: tar.gz for Unix, zip for Windows, includes LICENSE and README
+- **Homebrew tap**: Auto-publishes formula to `buckleypaul/homebrew-tap` repository
+- **Checksums and changelog**: Automatic generation for all releases
+
+### GitHub Actions Workflows
+- **Release workflow** (`.github/workflows/release.yml`):
+  - Triggered on push of `v*` tags
+  - Sets up Go 1.25 + Node.js 20
+  - Runs GoReleaser to build cross-platform binaries
+  - Creates GitHub release with binaries and checksums
+  - Pushes Homebrew formula to tap repository
+- **CI workflow** (`.github/workflows/ci.yml`):
+  - Triggered on push to main and pull requests
+  - Runs Go tests (`go test ./...`)
+  - Builds frontend (`make frontend-build`)
+  - Runs frontend tests (`cd ui && npm test`)
+  - Builds binary (`make build`)
+  - Verifies version command works
+
+### Distribution Methods
+1. **Homebrew**: `brew install buckleypaul/tap/giki` (official tap)
+2. **Direct download**: Download platform-specific archives from GitHub releases
+3. **From source**: `make build` (requires Go 1.25+ and Node.js 20+)
+
+### Release Process
+1. Create and push an annotated tag (e.g., `v0.1.0`)
+2. GitHub Actions automatically:
+   - Builds binaries for all platforms
+   - Creates GitHub release with binaries and checksums
+   - Pushes Homebrew formula to `buckleypaul/homebrew-tap`
+3. Users can install via Homebrew or direct download
+
 ## Components
 
 ### Backend (Go)
@@ -96,13 +141,23 @@ For production builds, `make build` runs the frontend build first, then embeds t
 ## Current Status
 
 **Completed Steps:**
-- Step 1: Project scaffold, Go module, Makefile ✓
-- Step 2: GitHub repository setup ✓
-- Step 3: Vite + React scaffold with embed.FS wiring ✓
-- Step 4: CLI with Cobra (flags, argument parsing, browser open) ✓
-- Step 5: Git provider interface + local repo validation ✓
+- Phase 1 (Foundation): Steps 1-5 ✓
+- Phase 2 (Core API Endpoints): Steps 6-9 ✓
+- Phase 3 (Read-Only UI): Steps 10-15 ✓
+- Phase 5 (Distribution): Step 26 ✓ (implemented ahead of schedule)
 
-**Next Step:**
-- Step 6: `/api/tree` endpoint (Phase 2: Core API Endpoints)
+**Current Capabilities (v0.1.0):**
+- Browse local git repositories via web UI
+- GitHub Flavored Markdown rendering with syntax highlighting
+- Code file display with syntax highlighting (180+ languages)
+- Image display
+- Branch switching (dropdown selector)
+- File tree navigation with collapsible directories
+- URL routing and directory listings
+- Cross-platform distribution via Homebrew tap
+
+**Next Steps:**
+- Phase 4 (Editing Features): Steps 16-21 (pending changes, editing, committing)
+- Phase 5 (Distribution): Steps 24-25, 27 (remote repos, theming, search, e2e tests)
 
 See `progress-log.md` for detailed implementation history.
