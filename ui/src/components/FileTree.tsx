@@ -8,6 +8,7 @@ import './FileTree.css';
 interface FileTreeProps {
   branch?: string;
   onDelete?: (path: string) => void;
+  onRename?: (path: string) => void;
 }
 
 interface TreeItemProps {
@@ -15,10 +16,12 @@ interface TreeItemProps {
   depth: number;
   onFileClick: (path: string) => void;
   onDelete?: (path: string) => void;
+  onRename?: (path: string) => void;
   isDeleted?: boolean;
+  isMoved?: boolean;
 }
 
-function TreeItem({ node, depth, onFileClick, onDelete, isDeleted }: TreeItemProps) {
+function TreeItem({ node, depth, onFileClick, onDelete, onRename, isDeleted, isMoved }: TreeItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const isDirectory = node.children && node.children.length > 0;
 
@@ -37,10 +40,17 @@ function TreeItem({ node, depth, onFileClick, onDelete, isDeleted }: TreeItemPro
     }
   };
 
+  const handleRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onRename && !isDirectory) {
+      onRename(node.path);
+    }
+  };
+
   const indent = depth * 12;
 
   return (
-    <div className={`tree-item ${isDeleted ? 'tree-item-deleted' : ''}`}>
+    <div className={`tree-item ${isDeleted ? 'tree-item-deleted' : ''} ${isMoved ? 'tree-item-moved' : ''}`}>
       <div
         className={`tree-item-label ${isDirectory ? 'directory' : 'file'}`}
         style={{ paddingLeft: `${indent}px` }}
@@ -53,15 +63,29 @@ function TreeItem({ node, depth, onFileClick, onDelete, isDeleted }: TreeItemPro
         )}
         {!isDirectory && <span className="tree-item-icon">📄</span>}
         <span className="tree-item-name">{node.name}</span>
-        {!isDirectory && onDelete && !isDeleted && (
-          <button
-            className="tree-item-delete"
-            onClick={handleDelete}
-            title="Delete file"
-            aria-label={`Delete ${node.name}`}
-          >
-            ×
-          </button>
+        {!isDirectory && !isDeleted && !isMoved && (
+          <div className="tree-item-actions">
+            {onRename && (
+              <button
+                className="tree-item-rename"
+                onClick={handleRename}
+                title="Rename file"
+                aria-label={`Rename ${node.name}`}
+              >
+                ✎
+              </button>
+            )}
+            {onDelete && (
+              <button
+                className="tree-item-delete"
+                onClick={handleDelete}
+                title="Delete file"
+                aria-label={`Delete ${node.name}`}
+              >
+                ×
+              </button>
+            )}
+          </div>
         )}
       </div>
       {isDirectory && isExpanded && node.children && (
@@ -73,6 +97,7 @@ function TreeItem({ node, depth, onFileClick, onDelete, isDeleted }: TreeItemPro
               depth={depth + 1}
               onFileClick={onFileClick}
               onDelete={onDelete}
+              onRename={onRename}
             />
           ))}
         </div>
@@ -81,7 +106,7 @@ function TreeItem({ node, depth, onFileClick, onDelete, isDeleted }: TreeItemPro
   );
 }
 
-export default function FileTree({ branch, onDelete }: FileTreeProps) {
+export default function FileTree({ branch, onDelete, onRename }: FileTreeProps) {
   const [rootNode, setRootNode] = useState<TreeNode | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,10 +141,14 @@ export default function FileTree({ branch, onDelete }: FileTreeProps) {
     const deletedPaths = new Set(
       pendingChanges.filter((c) => c.type === 'delete').map((c) => c.path)
     );
+    const movedPaths = new Set(
+      pendingChanges.filter((c) => c.type === 'move' && c.oldPath).map((c) => c.oldPath!)
+    );
     const createdChanges = pendingChanges.filter((c) => c.type === 'create');
+    const moveChanges = pendingChanges.filter((c) => c.type === 'move');
 
-    // Filter out deleted files
-    let mergedNodes = nodes.filter((node) => !deletedPaths.has(node.path));
+    // Filter out deleted files and files that have been moved (from old location)
+    let mergedNodes = nodes.filter((node) => !deletedPaths.has(node.path) && !movedPaths.has(node.path));
 
     // Add created files
     for (const change of createdChanges) {
@@ -139,6 +168,23 @@ export default function FileTree({ branch, onDelete }: FileTreeProps) {
             isDir: false,
           });
         }
+      }
+    }
+
+    // Add moved files at their new location (root level for simplicity)
+    for (const change of moveChanges) {
+      const pathParts = change.path.split('/');
+      const fileName = pathParts[pathParts.length - 1];
+      const parentPath = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : '';
+
+      // Only add if not already in tree and at root level
+      const alreadyExists = mergedNodes.some((n) => n.path === change.path);
+      if (!alreadyExists && parentPath === '') {
+        mergedNodes.push({
+          name: fileName,
+          path: change.path,
+          isDir: false,
+        });
       }
     }
 
@@ -189,6 +235,7 @@ export default function FileTree({ branch, onDelete }: FileTreeProps) {
           depth={0}
           onFileClick={handleFileClick}
           onDelete={onDelete}
+          onRename={onRename}
         />
       ))}
     </div>

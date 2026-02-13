@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import FileTree from './FileTree';
 import CreateFileDialog from './CreateFileDialog';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
+import RenameDialog from './RenameDialog';
+import CreateFolderDialog from './CreateFolderDialog';
 import { fetchTree } from '../api/client';
 import type { TreeNode } from '../api/types';
 import './Sidebar.css';
@@ -14,7 +16,10 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, branch }: SidebarProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+  const [fileToRename, setFileToRename] = useState<string | null>(null);
   const [existingPaths, setExistingPaths] = useState<string[]>([]);
 
   // Fetch tree to get existing paths for validation
@@ -56,20 +61,34 @@ export default function Sidebar({ isOpen, branch }: SidebarProps) {
     setShowDeleteDialog(true);
   };
 
+  const handleRename = (path: string) => {
+    setFileToRename(path);
+    setShowRenameDialog(true);
+  };
+
   return (
     <aside className={`sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="sidebar-content">
         <div className="sidebar-header">
           <h2 className="sidebar-title">Files</h2>
-          <button
-            className="sidebar-button"
-            onClick={() => setShowCreateDialog(true)}
-            title="Create new file"
-          >
-            + New File
-          </button>
+          <div className="sidebar-buttons">
+            <button
+              className="sidebar-button"
+              onClick={() => setShowCreateDialog(true)}
+              title="Create new file"
+            >
+              + File
+            </button>
+            <button
+              className="sidebar-button"
+              onClick={() => setShowCreateFolderDialog(true)}
+              title="Create new folder"
+            >
+              + Folder
+            </button>
+          </div>
         </div>
-        <FileTree branch={branch} onDelete={handleDelete} />
+        <FileTree branch={branch} onDelete={handleDelete} onRename={handleRename} />
       </div>
 
       <CreateFileDialog
@@ -85,6 +104,22 @@ export default function Sidebar({ isOpen, branch }: SidebarProps) {
           setShowDeleteDialog(false);
           setFileToDelete(null);
         }}
+      />
+
+      <RenameDialog
+        isOpen={showRenameDialog}
+        currentPath={fileToRename}
+        onClose={() => {
+          setShowRenameDialog(false);
+          setFileToRename(null);
+        }}
+        existingPaths={existingPaths}
+      />
+
+      <CreateFolderDialog
+        isOpen={showCreateFolderDialog}
+        onClose={() => setShowCreateFolderDialog(false)}
+        existingPaths={existingPaths}
       />
     </aside>
   );
