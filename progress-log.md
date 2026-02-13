@@ -1249,3 +1249,121 @@ giki version dev
 
 ---
 
+## Step 17: In-browser editor with CodeMirror
+**Date:** 2026-02-13
+**Phase:** Phase 4 - Editing & File Management
+
+**Summary:**
+- Installed CodeMirror dependencies: `@uiw/react-codemirror`, `@codemirror/lang-markdown`, `@codemirror/language-data`
+- Created `ui/src/components/Editor.tsx` — split-pane editor component:
+  - Left pane: CodeMirror editor with markdown language support and code language detection
+  - Right pane: Live markdown preview using existing MarkdownView component
+  - Top header with file path display and Save/Cancel buttons
+  - Save button calls `addChange()` to create/update pending change (type: 'modify')
+  - Cancel button calls `onCancel()` callback to return to read view
+  - Calculates basePath for markdown preview relative link resolution
+  - Responsive design: panes stack vertically on narrow viewports (< 768px)
+- Created `ui/src/components/Editor.css` with comprehensive styling:
+  - Split-pane layout using flexbox
+  - Light/dark mode support via CSS custom properties
+  - CodeMirror integration with full-height editor
+  - Preview pane with proper scrolling and padding
+  - Styled buttons with hover states
+- Updated `ui/src/components/MarkdownView.tsx`:
+  - Added optional `onEdit` callback prop
+  - Renders "Edit" button in header when `onEdit` is provided
+  - Button styled to match save/cancel buttons (blue background)
+  - Updated wrapper structure with `.markdown-view-wrapper` and `.markdown-view-header`
+- Updated `ui/src/components/MarkdownView.css`:
+  - Added styles for `.markdown-view-wrapper`, `.markdown-view-header`, `.markdown-edit-button`
+  - Dark mode support for edit button header
+  - Maintained existing markdown rendering styles
+- Updated `ui/src/components/FileViewer.tsx`:
+  - Added `isEditing` state (boolean) to track edit mode
+  - When editing markdown file, renders `<Editor>` instead of `<MarkdownView>`
+  - Passes `onEdit={() => setIsEditing(true)}` callback to MarkdownView
+  - Editor receives `initialContent` (current content), `filePath`, and `onCancel` callback
+  - Imported Editor component
+- Created comprehensive test suite in `ui/src/components/Editor.test.tsx` (10 tests):
+  - Mocked CodeMirror to avoid rendering issues in tests (uses textarea)
+  - Mocked language modules (`@codemirror/lang-markdown`, `@codemirror/language-data`)
+  - Wrapped all tests with BrowserRouter and PendingChangesProvider
+  - Tests cover: file path display, button rendering, split panes, initial content, live preview, content updates, cancel functionality, save functionality, nested paths, root-level files
+- Updated `ui/src/components/MarkdownView.test.tsx` (3 additional tests):
+  - Added Edit button tests: button not shown without onEdit, button shown with onEdit, onEdit callback triggered on click
+  - Imported `userEvent` for interaction testing
+
+**Files Created:**
+- `ui/src/components/Editor.tsx`
+- `ui/src/components/Editor.css`
+- `ui/src/components/Editor.test.tsx`
+
+**Files Modified:**
+- `ui/src/components/MarkdownView.tsx` (added onEdit prop and Edit button)
+- `ui/src/components/MarkdownView.css` (added edit button styles)
+- `ui/src/components/MarkdownView.test.tsx` (added 3 tests for Edit button)
+- `ui/src/components/FileViewer.tsx` (added edit mode support)
+- `ui/package.json`, `ui/package-lock.json` (added CodeMirror dependencies)
+
+**Test Results:**
+- ✓ All 141 Vitest tests passed across 12 test suites
+  - Editor: 10 tests (all passing)
+  - MarkdownView: 31 tests (28 existing + 3 new for Edit button)
+  - All previous component tests still passing
+- ✓ All Go tests passed (24 tests in cli, git, server packages)
+- ✓ `go vet ./...` passed with no issues
+- ✓ Frontend builds successfully (`npm run build`)
+- ✓ Go binary builds with embedded frontend (13M)
+- ✓ `make build` succeeded
+
+**Vitest Test Coverage (Editor):**
+1. **Component Structure (4 tests):**
+   - File path displayed in editor title
+   - Save and Cancel buttons rendered
+   - Split panes with "Editor" and "Preview" titles
+   - CodeMirror renders with initial content
+
+2. **Live Preview (2 tests):**
+   - Markdown preview renders initial content
+   - Preview updates when editor content changes
+
+3. **Button Functionality (2 tests):**
+   - Cancel button calls onCancel callback
+   - Save button adds pending change and calls onCancel
+
+4. **Path Handling (2 tests):**
+   - Nested file paths (docs/guides/setup.md) handled correctly
+   - Root-level files (README.md) handled correctly
+
+**Vitest Test Coverage (MarkdownView Edit Button):**
+1. Edit button not rendered when onEdit prop not provided
+2. Edit button rendered when onEdit callback provided
+3. Edit button click triggers onEdit callback
+
+**Acceptance Criteria (Plan Step 17):**
+- ✅ Split-pane editor with CodeMirror left, live preview right
+- ✅ Markdown language support in editor
+- ✅ Live preview updates as user types
+- ✅ Save button adds/updates pending change (does not write to disk)
+- ✅ Cancel button returns to read view
+- ✅ Edit button added to MarkdownView
+- ✅ Editor loads from pending change (if exists) or API content (via FileViewer)
+- ✅ Responsive design: panes stack on narrow viewports
+
+**Architecture Notes:**
+- Editor is a controlled component managing its own content state
+- FileViewer orchestrates switching between read and edit modes
+- MarkdownView remains a pure presentation component with optional edit callback
+- Editor integrates with PendingChangesContext to add/update pending changes
+- Save operation does NOT write to disk — only updates in-memory pending changes
+- Pending changes displayed in TopBar badge (from Step 16)
+- CodeMirror configured with markdown extension and language-data for code block highlighting
+- basePath calculation ensures markdown preview links resolve correctly relative to file location
+- All components maintain light/dark mode support via CSS custom properties
+- TypeScript strict mode with type-safe props and callbacks
+- No backend changes required for Step 17 (purely frontend feature)
+
+**Next Step:** Step 18 - Create and delete files
+
+---
+
