@@ -380,7 +380,26 @@ func (p *LocalProvider) Branches() ([]BranchInfo, error) {
 }
 
 // Status returns the current repository status.
-// Implementation deferred to Phase 2 (Step 9).
+// Returns source path, current branch, and dirty state (uncommitted changes).
 func (p *LocalProvider) Status() (*RepoStatus, error) {
-	return nil, fmt.Errorf("Status not yet implemented")
+	// Get worktree to check for uncommitted changes
+	worktree, err := p.repo.Worktree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Get worktree status
+	status, err := worktree.Status()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get status: %w", err)
+	}
+
+	// Determine if working tree is dirty (has uncommitted changes)
+	isDirty := !status.IsClean()
+
+	return &RepoStatus{
+		Source:  p.path,
+		Branch:  p.branch,
+		IsDirty: isDirty,
+	}, nil
 }

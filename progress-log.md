@@ -326,3 +326,66 @@ This document tracks the completion of each step in the Giki implementation plan
 
 ---
 
+## Step 9: `/api/status` endpoint
+**Date:** 2026-02-13
+**Phase:** Phase 2 - Core API Endpoints
+
+**Summary:**
+- Implemented `LocalProvider.Status()` method in `internal/git/local.go`
+- Retrieves repository source path, current branch, and dirty state (uncommitted changes)
+- Uses `worktree.Status()` to determine if repository has uncommitted changes (modified, staged, or untracked files)
+- Returns `isDirty: false` for clean repositories, `isDirty: true` for repositories with uncommitted changes
+- Created `internal/server/handler_status.go` with `GET /api/status` endpoint
+- Returns JSON with source path, branch name, and dirty state
+- Created comprehensive unit tests in `internal/git/local_test.go` (3 new test functions)
+- Created integration tests in `internal/server/handler_status_test.go` (3 test functions)
+- Registered endpoint in `internal/server/server.go`
+
+**Files Created:**
+- `internal/server/handler_status.go`
+- `internal/server/handler_status_test.go`
+
+**Files Modified:**
+- `internal/git/local.go` (implemented Status method)
+- `internal/server/server.go` (registered /api/status endpoint)
+- `internal/git/local_test.go` (added 3 unit tests for Status)
+
+**Test Results:**
+- ✓ All unit tests passed (21 test functions in `internal/git/local_test.go`)
+  - `TestStatus_CleanRepository`: Verified clean repo returns `isDirty: false`
+  - `TestStatus_DirtyRepository`: Verified modified files return `isDirty: true`
+  - `TestStatus_UntrackedFiles`: Verified untracked files return `isDirty: true`
+- ✓ All integration tests passed (3 test functions in `internal/server/handler_status_test.go`)
+  - `TestHandleStatus_CleanRepository`: Verified endpoint returns correct JSON for clean repo
+  - `TestHandleStatus_DirtyRepository`: Verified endpoint returns correct JSON for dirty repo
+  - `TestHandleStatus_JSON`: Verified response has all expected fields (source, branch, isDirty)
+- ✓ All existing tests still pass (cli, git, server packages)
+- ✓ `go vet ./...` passed with no issues
+- ✓ `make build` succeeded (binary: 9.4M)
+- ✓ Manual testing: `GET /api/status` returns correct JSON: `{"source":"/Users/paulbuckley/Projects/giki","branch":"main","isDirty":true}`
+
+**Unit Tests:**
+- ✓ Clean repo (committed file, no changes) → `isDirty: false`
+- ✓ Dirty repo (modified file) → `isDirty: true`
+- ✓ Dirty repo (untracked file) → `isDirty: true`
+- ✓ Status returns correct source path and branch name
+
+**Integration Tests:**
+- ✓ `GET /api/status` returns 200 OK
+- ✓ Response has Content-Type: application/json
+- ✓ JSON includes all required fields: source, branch, isDirty
+- ✓ Clean repository returns `isDirty: false`
+- ✓ Repository with uncommitted changes returns `isDirty: true`
+
+**Acceptance Criteria (PRD 3.8):**
+- ✅ Dirty/clean state reported accurately via `worktree.Status()`
+- ✅ Endpoint returns current branch name
+- ✅ Endpoint returns source path (local repository path)
+- ✅ Modified files make repository dirty
+- ✅ Untracked files make repository dirty
+- ✅ Clean committed state returns `isDirty: false`
+
+**Next Step:** Step 10 - React app shell (Layout, TopBar, Sidebar)
+
+---
+

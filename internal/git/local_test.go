@@ -948,3 +948,175 @@ func TestBranches_SingleBranch(t *testing.T) {
 		t.Error("expected branch name to be non-empty")
 	}
 }
+
+// TestStatus_CleanRepository tests that Status returns isDirty: false for a clean repository.
+func TestStatus_CleanRepository(t *testing.T) {
+	// Create a temp directory
+	tempDir := t.TempDir()
+
+	// Initialize a git repository
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init repo: %v", err)
+	}
+
+	// Create and commit a file to have a clean state
+	testFile := filepath.Join(tempDir, "README.md")
+	if err := os.WriteFile(testFile, []byte("# Test"), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	// Stage and commit the file
+	worktree, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	if _, err := worktree.Add("README.md"); err != nil {
+		t.Fatalf("failed to stage file: %v", err)
+	}
+
+	if _, err := worktree.Commit("Initial commit", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	// Create provider
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Get status
+	status, err := provider.Status()
+	if err != nil {
+		t.Fatalf("failed to get status: %v", err)
+	}
+
+	// Verify status fields
+	if status.Source != tempDir {
+		t.Errorf("expected source %q, got %q", tempDir, status.Source)
+	}
+
+	if status.Branch != "master" {
+		t.Errorf("expected branch 'master', got %q", status.Branch)
+	}
+
+	if status.IsDirty {
+		t.Error("expected clean repository (isDirty: false), got isDirty: true")
+	}
+}
+
+// TestStatus_DirtyRepository tests that Status returns isDirty: true for a repository with uncommitted changes.
+func TestStatus_DirtyRepository(t *testing.T) {
+	// Create a temp directory
+	tempDir := t.TempDir()
+
+	// Initialize a git repository
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init repo: %v", err)
+	}
+
+	// Create and commit a file to establish baseline
+	testFile := filepath.Join(tempDir, "README.md")
+	if err := os.WriteFile(testFile, []byte("# Test"), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	worktree, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	if _, err := worktree.Add("README.md"); err != nil {
+		t.Fatalf("failed to stage file: %v", err)
+	}
+
+	if _, err := worktree.Commit("Initial commit", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	// Now modify the file (create uncommitted changes)
+	if err := os.WriteFile(testFile, []byte("# Test - Modified"), 0644); err != nil {
+		t.Fatalf("failed to modify file: %v", err)
+	}
+
+	// Create provider
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Get status
+	status, err := provider.Status()
+	if err != nil {
+		t.Fatalf("failed to get status: %v", err)
+	}
+
+	// Verify isDirty is true
+	if !status.IsDirty {
+		t.Error("expected dirty repository (isDirty: true), got isDirty: false")
+	}
+
+	if status.Source != tempDir {
+		t.Errorf("expected source %q, got %q", tempDir, status.Source)
+	}
+
+	if status.Branch != "master" {
+		t.Errorf("expected branch 'master', got %q", status.Branch)
+	}
+}
+
+// TestStatus_UntrackedFiles tests that Status returns isDirty: true when there are untracked files.
+func TestStatus_UntrackedFiles(t *testing.T) {
+	// Create a temp directory
+	tempDir := t.TempDir()
+
+	// Initialize a git repository
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init repo: %v", err)
+	}
+
+	// Create and commit a file to establish baseline
+	testFile := filepath.Join(tempDir, "README.md")
+	if err := os.WriteFile(testFile, []byte("# Test"), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	worktree, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	if _, err := worktree.Add("README.md"); err != nil {
+		t.Fatalf("failed to stage file: %v", err)
+	}
+
+	if _, err := worktree.Commit("Initial commit", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	// Add an untracked file
+	untrackedFile := filepath.Join(tempDir, "untracked.txt")
+	if err := os.WriteFile(untrackedFile, []byte("new file"), 0644); err != nil {
+		t.Fatalf("failed to write untracked file: %v", err)
+	}
+
+	// Create provider
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Get status
+	status, err := provider.Status()
+	if err != nil {
+		t.Fatalf("failed to get status: %v", err)
+	}
+
+	// Verify isDirty is true (untracked files make the repo dirty)
+	if !status.IsDirty {
+		t.Error("expected dirty repository with untracked files (isDirty: true), got isDirty: false")
+	}
+}
