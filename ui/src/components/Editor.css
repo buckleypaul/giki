@@ -1,0 +1,164 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: var(--bg-primary, #ffffff);
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  background-color: var(--bg-secondary, #f9fafb);
+}
+
+.editor-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.editor-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.editor-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.editor-cancel {
+  background-color: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #111827);
+}
+
+.editor-cancel:hover {
+  background-color: var(--bg-secondary, #f9fafb);
+}
+
+.editor-save {
+  background-color: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.editor-save:hover {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.editor-panes {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.editor-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-left {
+  border-right: 1px solid var(--border-color, #e5e7eb);
+}
+
+.editor-pane-title {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #6b7280);
+  background-color: var(--bg-secondary, #f9fafb);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.editor-codemirror {
+  flex: 1;
+  overflow: auto;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Consolas', monospace;
+}
+
+/* CodeMirror theme integration */
+.editor-codemirror .cm-editor {
+  height: 100%;
+}
+
+.editor-codemirror .cm-scroller {
+  overflow: auto;
+}
+
+.editor-preview {
+  flex: 1;
+  overflow: auto;
+  padding: 1.5rem;
+  background-color: var(--bg-primary, #ffffff);
+}
+
+/* Responsive: stack vertically on narrow viewports */
+@media (max-width: 768px) {
+  .editor-panes {
+    flex-direction: column;
+  }
+
+  .editor-left {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+  }
+
+  .editor-pane {
+    min-height: 300px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .editor {
+    background-color: var(--bg-primary, #1f2937);
+  }
+
+  .editor-header {
+    background-color: var(--bg-secondary, #374151);
+    border-bottom-color: var(--border-color, #4b5563);
+  }
+
+  .editor-title {
+    color: var(--text-primary, #f9fafb);
+  }
+
+  .editor-cancel {
+    background-color: var(--bg-primary, #1f2937);
+    color: var(--text-primary, #f9fafb);
+  }
+
+  .editor-cancel:hover {
+    background-color: var(--bg-secondary, #374151);
+  }
+
+  .editor-pane-title {
+    color: var(--text-secondary, #9ca3af);
+    background-color: var(--bg-secondary, #374151);
+    border-bottom-color: var(--border-color, #4b5563);
+  }
+
+  .editor-left {
+    border-right-color: var(--border-color, #4b5563);
+  }
+
+  .editor-preview {
+    background-color: var(--bg-primary, #1f2937);
+  }
+}

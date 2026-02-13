@@ -5,6 +5,7 @@ import { MarkdownView } from './MarkdownView';
 import { CodeView } from './CodeView';
 import { ImageView } from './ImageView';
 import { BinaryCard } from './BinaryCard';
+import { Editor } from './Editor';
 import './FileViewer.css';
 
 interface FileViewerProps {
@@ -18,6 +19,7 @@ export function FileViewer({ filePath, branch, pendingContent }: FileViewerProps
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fileType, setFileType] = useState<FileType>('unknown');
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     async function loadFile() {
@@ -102,9 +104,26 @@ export function FileViewer({ filePath, branch, pendingContent }: FileViewerProps
     ? filePath.substring(0, filePath.lastIndexOf('/'))
     : '';
 
+  // If editing markdown, show editor
+  if (isEditing && fileType === 'markdown') {
+    return (
+      <Editor
+        filePath={filePath}
+        initialContent={content}
+        onCancel={() => setIsEditing(false)}
+      />
+    );
+  }
+
   switch (fileType) {
     case 'markdown':
-      return <MarkdownView content={content} basePath={basePath} />;
+      return (
+        <MarkdownView
+          content={content}
+          basePath={basePath}
+          onEdit={() => setIsEditing(true)}
+        />
+      );
 
     case 'code':
       return <CodeView content={content} filePath={filePath} />;
