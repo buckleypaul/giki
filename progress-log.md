@@ -461,3 +461,344 @@ This document tracks the completion of each step in the Giki implementation plan
 
 ---
 
+## Step 11: File tree component
+**Date:** 2026-02-13
+**Phase:** Phase 3 - Frontend — Read-Only Browsing
+
+**Summary:**
+- Created `ui/src/components/FileTree.tsx` — recursive tree component that renders directory and file structure
+  - Fetches tree from `/api/tree` on mount using `fetchTree(branch)` API client
+  - Renders nested TreeNode structure with expand/collapse functionality for directories
+  - Directories collapsed by default; clicking toggles expand/collapse state
+  - File clicks trigger navigation via React Router `useNavigate()` to `/${path}`
+  - Supports depth-based indentation (12px per level)
+  - Icons: directories show ▶/▼ chevron, files show 📄 emoji
+  - Loading, error, and empty states handled with appropriate messages
+- Created `ui/src/components/FileTree.css` — styles for tree rendering
+  - Hover states for clickable items with theme-aware backgrounds
+  - Light/dark mode support via `prefers-color-scheme`
+  - Directory items shown with bold font weight
+  - File items shown with secondary text color
+- Updated `ui/src/components/Sidebar.tsx` to render `<FileTree branch={branch} />` instead of placeholder
+- Updated `ui/src/components/Layout.tsx` to fetch repo status and pass current branch to Sidebar
+  - Added `fetchStatus()` call on mount to get current branch
+  - Branch state managed in Layout and passed down to Sidebar → FileTree
+
+**Files Created:**
+- `ui/src/components/FileTree.tsx`
+- `ui/src/components/FileTree.css`
+
+**Files Modified:**
+- `ui/src/components/Sidebar.tsx` (replaced placeholder with FileTree component)
+- `ui/src/components/Layout.tsx` (added status fetch to get current branch)
+
+**Test Results:**
+- ✓ Frontend builds successfully (`npm run build`)
+- ✓ Go binary builds with embedded frontend (9.4M)
+- ✓ All Go tests pass (cli, git, server packages)
+- ✓ Server starts and serves React app at `http://localhost:8080/`
+- ✓ FileTree component fetches and renders tree structure from `/api/tree`
+- ✓ API returns root TreeNode with children array containing all top-level files/directories
+- ✓ Tree structure verified: directories (cmd, internal, ui) and files shown correctly
+- ✓ Frontend properly handles single root TreeNode response (renders root.children array)
+
+**Manual Testing:**
+- ✓ FileTree visible in Sidebar showing repository structure
+- ✓ Tree displays directories before files (backend sorting)
+- ✓ Directory icons (▶) and file icons (📄) render correctly
+- ✓ Directories are collapsed by default
+- ✓ Clicking directory expands/collapses children with smooth state transition
+- ✓ Expand/collapse state persists during session (React component state)
+- ✓ Clicking file navigates to file route (verified via browser DevTools Network tab)
+- ✓ Depth indentation works correctly for nested directories
+- ✓ Loading state shows "Loading file tree..." while fetching
+- ✓ Empty state shows "No files found" for empty repositories
+
+**Component Architecture:**
+- `FileTree` component: manages tree data fetching and top-level rendering
+  - State: rootNode (TreeNode | null), loading (boolean), error (string | null)
+  - Effect: fetches tree on mount and when branch changes
+  - Renders array of TreeItem components from root.children
+- `TreeItem` component: recursive component for rendering individual tree nodes
+  - State: isExpanded (boolean) for directory expand/collapse
+  - Props: node (TreeNode), depth (number for indentation), onFileClick callback
+  - Renders self + recursively renders children if directory is expanded
+  - Directory click toggles isExpanded; file click calls onFileClick with path
+- Data flow: Layout fetches status → passes branch to Sidebar → Sidebar passes to FileTree
+
+**Acceptance Criteria (PRD 3.3):**
+- ✅ Tree matches `/api/tree` response structure
+- ✅ Directories render before files (backend sorting maintained)
+- ✅ Directories expandable/collapsible with click
+- ✅ Expand/collapse state persists during session (React state, not localStorage)
+- ✅ File clicks navigate to file route via React Router
+- ✅ Tree fetched on component mount
+- ✅ Recursive rendering of nested directory structures
+
+**Next Step:** Step 12 - Markdown rendering
+
+---
+
+## Step 12: Markdown rendering
+**Date:** 2026-02-13
+**Phase:** Phase 3 - Frontend — Read-Only Browsing
+
+**Summary:**
+- Installed markdown rendering packages: `react-markdown`, `remark-gfm`, `rehype-highlight`, `rehype-slug`, `highlight.js`
+- Created `ui/src/components/MarkdownView.tsx` component with:
+  - GitHub Flavored Markdown (GFM) support via `remark-gfm` plugin (tables, task lists, strikethrough)
+  - Syntax highlighting for code blocks via `rehype-highlight` plugin
+  - Automatic heading anchor generation via `rehype-slug` plugin
+  - Custom link component: relative links (`docs/file.md`) → React Router `<Link>` for SPA navigation; external links (`https://...`) → `<a target="_blank" rel="noopener noreferrer">`
+  - Custom image component: relative images (`images/pic.png`) → rewritten to `/api/file/<resolved-path>`; external images passed through unchanged
+  - Relative path resolution with support for `./`, `../`, and multi-level `../../` navigation
+  - Task list checkboxes rendered as disabled (read-only)
+- Created `ui/src/components/MarkdownView.css` with:
+  - Styled markdown elements (headings, tables, code blocks, lists, blockquotes, images)
+  - Light/dark mode support via `prefers-color-scheme` media queries
+  - Responsive typography and spacing
+- Imported `highlight.js/styles/github.css` theme in `ui/src/main.tsx` for syntax highlighting
+- Set up Vitest testing infrastructure:
+  - Installed `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `jsdom`
+  - Created `ui/vitest.config.ts` with jsdom environment and React plugin
+  - Created `ui/src/test/setup.ts` for test setup
+  - Added `npm test` script to `package.json`
+- Created comprehensive test suite in `ui/src/components/MarkdownView.test.tsx` with 28 tests covering:
+  - GFM features: tables, task lists, strikethrough
+  - Syntax highlighting: fenced code blocks, inline code
+  - Link handling: relative paths, external URLs, protocol-relative URLs, `./` and `../` resolution
+  - Image handling: relative paths, external URLs, basePath resolution, absolute paths
+  - Heading anchors: ID generation via rehype-slug
+  - Edge cases: empty content, missing attributes, complex nested structures
+
+**Files Created:**
+- `ui/src/components/MarkdownView.tsx`
+- `ui/src/components/MarkdownView.css`
+- `ui/src/components/MarkdownView.test.tsx`
+- `ui/vitest.config.ts`
+- `ui/src/test/setup.ts`
+
+**Files Modified:**
+- `ui/src/main.tsx` (added highlight.js CSS import)
+- `ui/package.json` (added test script, new dependencies)
+- `ui/package-lock.json` (dependency updates)
+
+**Test Results:**
+- ✓ All 28 Vitest tests passed in `ui/src/components/MarkdownView.test.tsx`
+  - GFM table renders as `<table>` element
+  - Task list checkboxes rendered and disabled
+  - Strikethrough text renders with `<del>` tag
+  - Fenced code blocks receive syntax highlighting classes
+  - Inline code styled correctly
+  - Relative links (`docs/guide.md`) render as React Router `<Link>` with correct href
+  - External HTTPS links render with `target="_blank"` and `rel="noopener noreferrer"`
+  - Protocol-relative URLs (`//example.com`) treated as external
+  - `./` and `../` path resolution works correctly with basePath
+  - Multiple `../` levels resolve correctly
+  - Absolute paths (`/docs/file.md`) pass through without basePath modification
+  - Relative images rewritten to `/api/file/<resolved-path>`
+  - External images pass through unchanged
+  - Images without basePath get `/` prepended correctly
+  - Headings generate anchor IDs via rehype-slug (`# Hello` → `id="hello"`)
+  - Empty markdown content handled gracefully
+  - Complex nested markdown structures render correctly
+- ✓ All Go tests pass (`go test ./...`)
+- ✓ `go vet ./...` passed with no issues
+- ✓ Frontend builds successfully (`npm run build`)
+- ✓ Go binary builds with embedded frontend (12M, up from 9.4M due to markdown libraries)
+
+**Vitest Test Coverage:**
+1. **GFM Features (3 tests):**
+   - Table rendering with proper HTML structure
+   - Task list checkboxes rendered and disabled
+   - Strikethrough text rendering
+
+2. **Syntax Highlighting (2 tests):**
+   - Fenced code blocks with language-specific highlighting
+   - Inline code styling
+
+3. **Link Handling (8 tests):**
+   - Relative links as React Router `<Link>`
+   - External HTTP/HTTPS links with `target="_blank"`
+   - Protocol-relative URLs as external
+   - `./` relative resolution
+   - `../` parent directory resolution
+   - Multiple `../../` level resolution
+   - Absolute path handling
+
+4. **Image Handling (8 tests):**
+   - Relative image src rewriting to `/api/file/`
+   - External HTTP/HTTPS images unchanged
+   - Protocol-relative image URLs as external
+   - `./` and `../` image path resolution
+   - Absolute image paths
+   - Images without basePath
+
+5. **Heading Anchors (3 tests):**
+   - H1 anchor ID generation
+   - H2 anchor ID generation
+   - Special characters in heading IDs
+
+6. **Edge Cases (4 tests):**
+   - Empty markdown content
+   - Links without href
+   - Images without src
+   - Complex nested markdown structures
+
+**Acceptance Criteria (PRD 3.4):**
+- ✅ GFM features (tables, task lists, strikethrough) render correctly
+- ✅ Relative SPA links work without page reload (React Router integration)
+- ✅ Images render inline (both relative and external)
+- ✅ Heading anchor navigation works (`#anchor` fragments via rehype-slug)
+
+**Architecture Notes:**
+- MarkdownView is a self-contained, reusable component accepting `content` and optional `basePath` props
+- `basePath` represents the directory of the current file for resolving relative links/images (e.g., viewing `/docs/guide.md` has basePath `docs`)
+- Relative URL resolution handles `./`, `../`, and multi-level `../../` navigation
+- External URLs detected via `://` or `//` prefix
+- Component will be consumed by ContentArea (Step 13-14) to display fetched markdown files
+- highlight.js GitHub theme provides light mode syntax highlighting (dark mode theme can be added later)
+- TypeScript strict mode with type-safe props and React Markdown components
+- No backend changes required—purely frontend feature
+
+**Next Step:** Step 13 - Non-markdown file rendering
+
+---
+
+## Step 13: Non-markdown file rendering
+**Date:** 2026-02-13
+**Phase:** Phase 3 - Frontend — Read-Only Browsing
+
+**Summary:**
+- Created `ui/src/utils/fileType.ts` with file categorization utilities:
+  - `getFileType(path)`: Categorizes files as `markdown | code | image | binary | unknown` based on extension
+  - `getLanguageFromExtension(path)`: Maps file extensions to highlight.js language names (e.g., `.go` → `"go"`, `.ts` → `"typescript"`)
+  - `formatFileSize(bytes)`: Formats byte counts into human-readable strings (e.g., `1024` → `"1 KB"`)
+  - Comprehensive extension lists for markdown, code (40+ languages), images, and binary files
+- Created `ui/src/components/CodeView.tsx` with syntax-highlighted code display:
+  - Integrates with highlight.js for automatic syntax highlighting
+  - Line numbers in left gutter (non-selectable)
+  - Header showing filename and language badge
+  - Monospace font with proper line height for readability
+  - Light/dark mode support via CSS custom properties
+- Created `ui/src/components/ImageView.tsx` for image display:
+  - Renders images from `/api/file/<path>` endpoint
+  - Centered layout with max-width constraints
+  - Checkerboard background pattern for transparency visibility
+  - Header showing filename
+  - Responsive image sizing
+- Created `ui/src/components/BinaryCard.tsx` for binary files:
+  - Info card displaying filename, full path, size, and MIME type
+  - Icon (📦) and centered layout
+  - Human-readable file size formatting
+  - Message indicating file cannot be displayed in browser
+  - Optional size and mimeType props (not displayed if not provided)
+- Created `ui/src/components/FileViewer.tsx` orchestrator component:
+  - Fetches file content via `fetchFile(path, branch)` API client
+  - Determines file type using `getFileType(path)`
+  - For unknown extensions, performs text/binary detection heuristic (checks for null bytes and control character ratio)
+  - Routes to appropriate sub-component based on file type:
+    - Markdown → `MarkdownView`
+    - Code → `CodeView`
+    - Image → `ImageView`
+    - Binary → `BinaryCard`
+    - Unknown text-like → `CodeView` (plain text)
+    - Unknown binary-like → `BinaryCard`
+  - Loading, error, and empty states with appropriate UI
+  - Passes branch parameter through to API calls
+  - Calculates basePath for markdown relative link resolution
+- Created comprehensive Vitest test suites:
+  - `fileType.test.ts`: 18 tests covering all utility functions
+  - `CodeView.test.tsx`: 8 tests for code display component
+  - `ImageView.test.tsx`: 5 tests for image display component
+  - `BinaryCard.test.tsx`: 9 tests for binary file info card
+  - `FileViewer.test.tsx`: 13 tests for orchestrator (with mocked API and child components)
+
+**Files Created:**
+- `ui/src/utils/fileType.ts`
+- `ui/src/components/CodeView.tsx`, `ui/src/components/CodeView.css`
+- `ui/src/components/ImageView.tsx`, `ui/src/components/ImageView.css`
+- `ui/src/components/BinaryCard.tsx`, `ui/src/components/BinaryCard.css`
+- `ui/src/components/FileViewer.tsx`, `ui/src/components/FileViewer.css`
+- `ui/src/utils/fileType.test.ts`
+- `ui/src/components/CodeView.test.tsx`
+- `ui/src/components/ImageView.test.tsx`
+- `ui/src/components/BinaryCard.test.tsx`
+- `ui/src/components/FileViewer.test.tsx`
+
+**Test Results:**
+- ✓ All 81 Vitest tests passed across 6 test suites
+  - fileType.test.ts: 18 tests (categorization, language detection, file size formatting)
+  - CodeView.test.tsx: 8 tests (rendering, syntax highlighting, line numbers)
+  - ImageView.test.tsx: 5 tests (image src URL construction, alt text)
+  - BinaryCard.test.tsx: 9 tests (info display, optional props, formatting)
+  - FileViewer.test.tsx: 13 tests (routing logic, loading/error states, API integration)
+  - MarkdownView.test.tsx: 28 tests (from previous step, still passing)
+- ✓ All Go tests still pass (`go test ./...`)
+- ✓ `go vet ./...` passed with no issues
+- ✓ Frontend builds successfully (`npm run build`)
+- ✓ Go binary builds with embedded frontend (12M, up from 9.4M due to larger bundle)
+
+**Vitest Test Coverage:**
+
+1. **fileType utility (18 tests):**
+   - Markdown, code, image, binary extension detection
+   - Unknown file handling
+   - Nested directory paths
+   - Case insensitivity
+   - Language mapping for 20+ extensions
+   - File size formatting (bytes, KB, MB, GB)
+
+2. **CodeView component (8 tests):**
+   - File path and language badge rendering
+   - Code content display
+   - Line number generation
+   - Syntax highlighting class application
+   - Empty and single-line content handling
+
+3. **ImageView component (5 tests):**
+   - Image src URL construction (`/api/file/<path>`)
+   - Alt text setting
+   - Root-level and nested path handling
+
+4. **BinaryCard component (9 tests):**
+   - Filename extraction from path
+   - Full path display
+   - Optional size and MIME type rendering
+   - Human-readable size formatting
+   - Binary file message display
+
+5. **FileViewer orchestrator (13 tests):**
+   - Loading state display
+   - Routing to correct sub-component (markdown, code, image, binary)
+   - Unknown file type handling (text vs binary detection)
+   - Error state handling
+   - Branch parameter passing
+   - basePath calculation for markdown
+   - Re-fetching on filePath/branch changes
+
+**Acceptance Criteria (PRD 3.5):**
+- ✅ `.go` files render with syntax highlighting via CodeView
+- ✅ `.png` files render as inline images via ImageView
+- ✅ `.zip` files show info card via BinaryCard
+- ✅ Extensionless text files render as plain text code via CodeView
+- ✅ Extensionless binary files show info card via BinaryCard
+- ✅ Syntax highlighting applies to 40+ programming languages
+- ✅ Line numbers displayed for code files
+- ✅ File categorization works correctly across all file types
+
+**Architecture Notes:**
+- FileViewer is the top-level orchestrator that determines which sub-component to render
+- Each view component (CodeView, ImageView, BinaryCard, MarkdownView) is self-contained and reusable
+- File type detection uses extension-based heuristics with fallback to content analysis
+- CodeView uses highlight.js for syntax highlighting (same library as MarkdownView code blocks)
+- ImageView delegates to backend `/api/file/<path>` endpoint for serving images
+- BinaryCard provides metadata display without attempting to render binary content
+- All components support light/dark mode via CSS custom properties
+- TypeScript provides type safety across all components and utilities
+- Comprehensive test coverage ensures correct routing and rendering logic
+
+**Next Step:** Step 14 - URL routing, directory listings, 404
+
+---
+
