@@ -802,3 +802,130 @@ This document tracks the completion of each step in the Giki implementation plan
 
 ---
 
+## Step 14: URL routing, directory listings, 404
+**Date:** 2026-02-13
+**Phase:** Phase 3 - Frontend — Read-Only Browsing
+
+**Summary:**
+- Created `ui/src/components/ContentArea.tsx` — main routing orchestrator that:
+  - Reads path from React Router location
+  - For `/` root: tries to load README.md or shows empty state message
+  - For file paths: loads FileViewer component
+  - For directories: tries to load `<dir>/README.md` (redirects to it) or shows DirectoryListing
+  - For nonexistent paths: shows NotFound component
+  - Supports automatic scrolling to anchor fragments (`#heading-id`)
+  - Handles loading states with spinner
+- Created `ui/src/components/DirectoryListing.tsx` — displays flat list of directory contents:
+  - Directories sorted before files, both alphabetically (case-insensitive)
+  - Directories shown with 📁 icon and trailing slash
+  - Files shown with 📄 icon
+  - All items are clickable links
+  - Message indicating no README.md exists in the directory
+- Created `ui/src/components/NotFound.tsx` — 404 page:
+  - Displays the missing file path
+  - Provides "Go to home" link to navigate back to root
+- Updated `ui/src/components/Layout.tsx` to pass `branch` prop to ContentArea
+- Created comprehensive Vitest test suites with 20 total tests:
+  - `ContentArea.test.tsx`: 8 tests (loading, README, empty state, file, directory, NotFound, branch param, re-fetch)
+  - `DirectoryListing.test.tsx`: 8 tests (path display, sorting, links, trailing slash, empty dir)
+  - `NotFound.test.tsx`: 4 tests (404 heading, path display, home link)
+
+**Files Created:**
+- `ui/src/components/ContentArea.tsx` (replaces placeholder)
+- `ui/src/components/DirectoryListing.tsx`, `ui/src/components/DirectoryListing.css`
+- `ui/src/components/NotFound.tsx`, `ui/src/components/NotFound.css`
+- `ui/src/components/ContentArea.test.tsx`
+- `ui/src/components/DirectoryListing.test.tsx`
+- `ui/src/components/NotFound.test.tsx`
+
+**Files Modified:**
+- `ui/src/components/Layout.tsx` (added branch prop to ContentArea)
+- `ui/src/components/ContentArea.css` (updated for new state rendering)
+
+**Test Results:**
+- ✓ All 101 Vitest tests passed across 9 test suites
+  - ContentArea: 8 tests covering all routing scenarios
+  - DirectoryListing: 8 tests for sorting and rendering
+  - NotFound: 4 tests for error display
+  - All previous component tests still passing
+- ✓ All Go tests pass (`go test ./...`)
+- ✓ `go vet ./...` passed with no issues
+- ✓ Frontend builds successfully (`npm run build`)
+- ✓ Go binary builds with embedded frontend (13M, up from 12M due to larger bundle)
+
+**Vitest Test Coverage:**
+
+1. **ContentArea component (8 tests):**
+   - Loading state renders spinner and "Loading..." text
+   - Root path (`/`) loads README.md when it exists
+   - Root path shows empty state when README.md missing
+   - File paths render FileViewer with correct filePath
+   - Nonexistent files render NotFound component
+   - Directory without README renders DirectoryListing
+   - Branch parameter passed correctly to API calls
+   - Component re-fetches when branch prop changes
+
+2. **DirectoryListing component (8 tests):**
+   - Directory path displayed in heading
+   - Root directory displayed as `/`
+   - All children rendered as clickable links
+   - Directories sorted before files alphabetically
+   - Directories render with trailing slash in text
+   - Correct href for nested file paths
+   - Empty directories render without error
+   - "No README.md" message displayed
+
+3. **NotFound component (4 tests):**
+   - 404 heading rendered
+   - Requested path displayed in error message
+   - "Go to home" link points to `/`
+   - Works with root path
+
+**Component Architecture:**
+
+1. **ContentArea** — Central routing logic:
+   - Manages state: `content` (loading/file/directory/notfound/empty), `dirChildren`
+   - Uses React Router `useLocation()` and `useNavigate()`
+   - Decision tree:
+     - Root → try README.md → empty state
+     - Path → try file → try directory → NotFound
+   - `findNodeByPath()` helper recursively searches tree for matching node
+   - Scroll-to-anchor effect watches `location.hash`
+
+2. **DirectoryListing** — File/folder list view:
+   - Accepts `path` and `children` (TreeNode array)
+   - Sorts in-memory: directories first, then files, alphabetical
+   - Renders heading with directory path
+   - Flat list (not nested) with icons and links
+
+3. **NotFound** — 404 error page:
+   - Simple, centered layout
+   - Displays missing path in `<code>` tag
+   - React Router `<Link>` for navigation
+
+**Acceptance Criteria (PRD 3.6):**
+- ✅ URL-based navigation works (`/`, `/file.md`, `/docs/guide.md`)
+- ✅ `/` renders README.md when exists
+- ✅ `/` shows empty-state message when no README
+- ✅ `/docs/` renders directory listing when no `docs/README.md`
+- ✅ `/docs/` redirects to `/docs/README.md` when it exists
+- ✅ `/nonexistent` renders NotFound component
+- ✅ Browser back/forward works (React Router handles this)
+- ✅ Anchor navigation works (`#heading-id` scrolls to element)
+- ✅ Directory listings show files sorted correctly
+- ✅ All navigation happens via React Router (no page reloads)
+
+**Architecture Notes:**
+- ContentArea is the single source of truth for "what to render at this URL"
+- All routing logic centralized in one component for maintainability
+- Lazy loading: components only fetch data when needed
+- Error states handled gracefully with user-friendly messages
+- Recursive tree search implemented efficiently with early exit
+- Directory README detection uses try-catch pattern for simplicity
+- All components support light/dark mode via CSS custom properties
+- Type-safe integration with existing FileViewer, MarkdownView, etc.
+
+**Next Step:** Step 15 - Branch selection (dropdown + non-HEAD branch reads)
+
+---
+
