@@ -20,8 +20,8 @@ clean:
 
 # Build frontend for production
 frontend-build:
-	@echo "Frontend build not yet implemented (Step 3)"
+	cd ui && npm install && npm run build
 
 # Run frontend in development mode
 frontend-dev:
-	@echo "Frontend dev server not yet implemented (Step 3)"
+	cd ui && npm run dev

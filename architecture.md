@@ -60,32 +60,41 @@ For production builds, `make build` runs the frontend build first, then embeds t
 
 5. **Clone-first for remote repos**: Remote repositories are cloned to `~/.giki/repos/` before serving, rather than using platform APIs for browsing.
 
-## Components (To Be Implemented)
+## Components
 
 ### Backend (Go)
 
-- **CLI layer** (`internal/cli`): Argument parsing, validation, browser opening
-- **Server layer** (`internal/server`): HTTP server, API endpoints, SPA serving
-- **Git layer** (`internal/git`): Repository operations via go-git (tree, file content, branches, status, commits)
-- **Config layer** (`internal/config`): Configuration file and environment variable handling
+- **CLI layer** (`internal/cli`): Argument parsing, validation, browser opening _(to be implemented in Step 4)_
+- **Server layer** (`internal/server`): ✓ Implemented in Step 3
+  - `server.go`: HTTP server setup, port binding, mux configuration
+  - `spa.go`: SPA handler with embedded FS serving and dev mode proxy support
+  - API handlers _(to be implemented in Phase 2)_
+- **Git layer** (`internal/git`): Repository operations via go-git _(to be implemented starting Step 5)_
+- **Config layer** (`internal/config`): Configuration file and environment variable handling _(to be implemented in Step 25)_
 
 ### Frontend (React)
 
-- **Layout**: Three-zone layout (TopBar, Sidebar, ContentArea)
-- **File tree**: Expandable/collapsible tree with directory-first sorting
-- **Viewers**: Markdown rendering, code syntax highlighting, image display, binary file info
-- **Editor**: Split-pane CodeMirror with live preview
-- **Pending changes**: In-memory tracking of creates/modifies/deletes/moves
-- **Search**: Fuzzy filename search and full-text content search
-- **Theme**: Light/dark mode with system preference detection
+- **Basic scaffold**: ✓ Implemented in Step 3
+  - Vite + React + TypeScript setup
+  - Embedded via `embed.FS` in Go binary
+  - Dev mode proxy support
+  - Basic App component
+- **Layout**: Three-zone layout (TopBar, Sidebar, ContentArea) _(to be implemented in Step 10)_
+- **File tree**: Expandable/collapsible tree with directory-first sorting _(to be implemented in Step 11)_
+- **Viewers**: Markdown rendering, code syntax highlighting, image display, binary file info _(to be implemented in Steps 12-13)_
+- **Editor**: Split-pane CodeMirror with live preview _(to be implemented in Step 17)_
+- **Pending changes**: In-memory tracking of creates/modifies/deletes/moves _(to be implemented in Step 16)_
+- **Search**: Fuzzy filename search and full-text content search _(to be implemented in Step 22)_
+- **Theme**: Light/dark mode with system preference detection _(to be implemented in Step 23)_
 
 ## Current Status
 
 **Completed Steps:**
 - Step 1: Project scaffold, Go module, Makefile ✓
+- Step 2: GitHub repository setup ✓
+- Step 3: Vite + React scaffold with embed.FS wiring ✓
 
-**Next Steps:**
-- Step 2: GitHub repository setup
-- Step 3: Vite + React scaffold with embed.FS wiring
+**Next Step:**
+- Step 4: CLI with Cobra (flags, argument parsing, browser open)
 
 See `progress-log.md` for detailed implementation history.

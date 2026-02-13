@@ -46,3 +46,35 @@ This document tracks the completion of each step in the Giki implementation plan
 
 ---
 
+## Step 3: Vite + React scaffold with embed.FS wiring
+**Date:** 2026-02-13
+**Phase:** Phase 1 - Foundation
+
+**Summary:**
+- Initialized Vite + React + TypeScript in `ui/` directory using `npm create vite@latest . -- --template react-ts`
+- Configured `vite.config.ts` with proxy: `/api` -> `http://localhost:4242`
+- Created `ui/embed.go` with `//go:embed dist` directive exposing `var Dist embed.FS`
+- Created `internal/server/spa.go` — handler serving static files from embedded FS with SPA fallback to `index.html` for non-API paths
+- Implemented dev mode support via `GIKI_DEV=1` env var that proxies requests to Vite dev server
+- Created `internal/server/server.go` — HTTP server that creates `http.ServeMux`, mounts SPA handler, listens on port 4242
+- Updated `cmd/giki/main.go` to start the HTTP server
+- Updated `Makefile` targets: `frontend-build` runs `npm install && npm run build`, `frontend-dev` runs `npm run dev`
+
+**Files Created:**
+- `ui/package.json`, `ui/vite.config.ts`, `ui/tsconfig.json`, `ui/index.html`
+- `ui/src/main.tsx`, `ui/src/App.tsx`
+- `ui/embed.go`
+- `internal/server/spa.go`
+- `internal/server/server.go`
+
+**Test Results:**
+- ✓ `make frontend-build` produced `ui/dist/index.html` (449 bytes)
+- ✓ `go build ./cmd/giki` succeeded with embedded assets (9.0M binary)
+- ✓ Running binary + hitting `http://localhost:4242/` returned React app HTML
+- ✓ Hitting `/nonexistent` returned `index.html` (SPA fallback working)
+- ✓ Hitting `/api/anything` returned 404 (not falling through to SPA as expected)
+
+**Next Step:** Step 4 - CLI with Cobra (flags, argument parsing, browser open)
+
+---
+
