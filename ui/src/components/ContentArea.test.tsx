@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { PendingChangesProvider } from '../context/PendingChangesContext';
 import ContentArea from './ContentArea';
 import * as apiClient from '../api/client';
 import type { TreeNode } from '../api/types';
@@ -39,7 +40,9 @@ describe('ContentArea', () => {
 
     render(
       <MemoryRouter initialEntries={['/']}>
-        <ContentArea />
+        <PendingChangesProvider>
+          <ContentArea />
+        </PendingChangesProvider>
       </MemoryRouter>
     );
 
@@ -51,7 +54,9 @@ describe('ContentArea', () => {
 
     render(
       <MemoryRouter initialEntries={['/']}>
-        <ContentArea />
+        <PendingChangesProvider>
+          <ContentArea />
+        </PendingChangesProvider>
       </MemoryRouter>
     );
 
@@ -68,7 +73,9 @@ describe('ContentArea', () => {
 
     render(
       <MemoryRouter initialEntries={['/']}>
-        <ContentArea />
+        <PendingChangesProvider>
+          <ContentArea />
+        </PendingChangesProvider>
       </MemoryRouter>
     );
 
@@ -82,7 +89,9 @@ describe('ContentArea', () => {
 
     render(
       <MemoryRouter initialEntries={['/docs/guide.md']}>
-        <ContentArea />
+        <PendingChangesProvider>
+          <ContentArea />
+        </PendingChangesProvider>
       </MemoryRouter>
     );
 
@@ -100,7 +109,9 @@ describe('ContentArea', () => {
 
     render(
       <MemoryRouter initialEntries={['/nonexistent.md']}>
-        <ContentArea />
+        <PendingChangesProvider>
+          <ContentArea />
+        </PendingChangesProvider>
       </MemoryRouter>
     );
 
@@ -138,7 +149,9 @@ describe('ContentArea', () => {
 
     render(
       <MemoryRouter initialEntries={['/docs']}>
-        <ContentArea />
+        <PendingChangesProvider>
+          <ContentArea />
+        </PendingChangesProvider>
       </MemoryRouter>
     );
 
@@ -154,7 +167,9 @@ describe('ContentArea', () => {
 
     render(
       <MemoryRouter initialEntries={['/file.md']}>
-        <ContentArea branch="dev" />
+        <PendingChangesProvider>
+          <ContentArea branch="dev" />
+        </PendingChangesProvider>
       </MemoryRouter>
     );
 
@@ -168,7 +183,9 @@ describe('ContentArea', () => {
 
     const { rerender } = render(
       <MemoryRouter initialEntries={['/file.md']}>
-        <ContentArea branch="main" />
+        <PendingChangesProvider>
+          <ContentArea branch="main" />
+        </PendingChangesProvider>
       </MemoryRouter>
     );
 
@@ -182,7 +199,9 @@ describe('ContentArea', () => {
     // Change branch
     rerender(
       <MemoryRouter initialEntries={['/file.md']}>
-        <ContentArea branch="dev" />
+        <PendingChangesProvider>
+          <ContentArea branch="dev" />
+        </PendingChangesProvider>
       </MemoryRouter>
     );
 

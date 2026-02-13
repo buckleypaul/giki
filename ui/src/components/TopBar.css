@@ -55,6 +55,18 @@
   line-height: 1;
 }
 
+.topbar-pending-badge {
+  background-color: #3b82f6;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  line-height: 1.2;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
 .topbar-error {
   color: #ef4444;
 }

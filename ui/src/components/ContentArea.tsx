@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchFile, fetchTree } from '../api/client';
 import type { TreeNode } from '../api/types';
+import { usePendingChanges } from '../context/PendingChangesContext';
 import { FileViewer } from './FileViewer';
 import { DirectoryListing } from './DirectoryListing';
 import { NotFound } from './NotFound';
@@ -14,6 +15,7 @@ interface ContentAreaProps {
 export default function ContentArea({ branch }: ContentAreaProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { getModifiedContent } = usePendingChanges();
   const [content, setContent] = useState<'loading' | 'file' | 'directory' | 'notfound' | 'empty'>('loading');
   const [dirChildren, setDirChildren] = useState<TreeNode[]>([]);
   const [lastSuccessfulPath, setLastSuccessfulPath] = useState<string | null>(null);
@@ -145,10 +147,11 @@ export default function ContentArea({ branch }: ContentAreaProps) {
 
   // content === 'file'
   const filePath = urlPath === '' ? 'README.md' : urlPath;
+  const pendingContent = getModifiedContent(filePath);
 
   return (
     <main className="content-area">
-      <FileViewer filePath={filePath} branch={branch} />
+      <FileViewer filePath={filePath} branch={branch} pendingContent={pendingContent} />
     </main>
   );
 }

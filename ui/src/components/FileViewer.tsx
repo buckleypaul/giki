@@ -10,9 +10,10 @@ import './FileViewer.css';
 interface FileViewerProps {
   filePath: string;
   branch?: string;
+  pendingContent?: string | null;
 }
 
-export function FileViewer({ filePath, branch }: FileViewerProps) {
+export function FileViewer({ filePath, branch, pendingContent }: FileViewerProps) {
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +21,18 @@ export function FileViewer({ filePath, branch }: FileViewerProps) {
 
   useEffect(() => {
     async function loadFile() {
+      // If we have pending content, use that instead of fetching from API
+      if (pendingContent !== undefined && pendingContent !== null) {
+        setContent(pendingContent);
+        setLoading(false);
+        setError(null);
+
+        // Determine file type from path
+        const detectedType = getFileType(filePath);
+        setFileType(detectedType === 'unknown' ? 'code' : detectedType);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       setContent(null);
@@ -57,7 +70,7 @@ export function FileViewer({ filePath, branch }: FileViewerProps) {
     }
 
     loadFile();
-  }, [filePath, branch]);
+  }, [filePath, branch, pendingContent]);
 
   if (loading) {
     return (

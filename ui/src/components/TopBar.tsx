@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchStatus } from '../api/client';
 import type { RepoStatus } from '../api/types';
+import { usePendingChanges } from '../context/PendingChangesContext';
 import { BranchSelector } from './BranchSelector';
 import './TopBar.css';
 
@@ -11,6 +12,9 @@ interface TopBarProps {
 export default function TopBar({ onToggleSidebar }: TopBarProps) {
   const [status, setStatus] = useState<RepoStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { getChanges } = usePendingChanges();
+
+  const pendingChangesCount = getChanges().length;
 
   useEffect(() => {
     fetchStatus()
@@ -34,6 +38,11 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
             <span className="topbar-separator">•</span>
             <BranchSelector />
             {status.isDirty && <span className="topbar-dirty" title="Uncommitted changes">●</span>}
+            {pendingChangesCount > 0 && (
+              <span className="topbar-pending-badge" title={`${pendingChangesCount} pending change${pendingChangesCount === 1 ? '' : 's'}`}>
+                {pendingChangesCount}
+              </span>
+            )}
           </>
         ) : (
           <span className="topbar-loading">Loading...</span>
