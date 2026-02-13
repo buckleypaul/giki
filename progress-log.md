@@ -389,3 +389,75 @@ This document tracks the completion of each step in the Giki implementation plan
 
 ---
 
+## Step 10: React app shell (Layout, TopBar, Sidebar)
+**Date:** 2026-02-13
+**Phase:** Phase 3 - Frontend — Read-Only Browsing
+
+**Summary:**
+- Installed `react-router-dom` dependency for client-side routing
+- Created TypeScript type definitions in `ui/src/api/types.ts` matching Go backend types (TreeNode, BranchInfo, RepoStatus)
+- Created `ui/src/api/client.ts` with typed fetch functions: `fetchTree()`, `fetchFile()`, `fetchBranches()`, `fetchStatus()`
+- Created three-zone layout using CSS Flexbox:
+  - `components/Layout.tsx` — main layout orchestrator with sidebar state management
+  - `components/TopBar.tsx` — displays repo source, branch, and dirty indicator (fetches from /api/status)
+  - `components/Sidebar.tsx` — collapsible sidebar with responsive behavior (< 768px)
+  - `components/ContentArea.tsx` — placeholder content area (shows current route)
+- Responsive design: sidebar collapses on narrow viewports (< 768px) with hamburger toggle button
+- Set up React Router with BrowserRouter and catch-all route (`/*`)
+- Updated `index.html` title from "ui" to "Giki"
+- All components use CSS custom properties for theming (light/dark mode support via `prefers-color-scheme`)
+
+**Files Created:**
+- `ui/src/api/types.ts`
+- `ui/src/api/client.ts`
+- `ui/src/components/Layout.tsx`, `ui/src/components/Layout.css`
+- `ui/src/components/TopBar.tsx`, `ui/src/components/TopBar.css`
+- `ui/src/components/Sidebar.tsx`, `ui/src/components/Sidebar.css`
+- `ui/src/components/ContentArea.tsx`, `ui/src/components/ContentArea.css`
+
+**Files Modified:**
+- `ui/src/App.tsx` — replaced Vite scaffold with React Router setup
+- `ui/index.html` — updated title to "Giki"
+- `ui/package.json`, `ui/package-lock.json` — added react-router-dom dependency
+
+**Test Results:**
+- ✓ Frontend builds successfully (`npm run build`)
+- ✓ Go binary builds with embedded frontend (9.4M)
+- ✓ All Go tests pass (cli, git, server packages)
+- ✓ Server starts and serves React app at `http://localhost:8080/`
+- ✓ TopBar fetches and displays repo status (source, branch, dirty indicator)
+- ✓ API client functions construct correct URLs:
+  - `/api/tree?branch=<branch>` or `/api/tree`
+  - `/api/file/<path>?branch=<branch>` or `/api/file/<path>`
+  - `/api/branches`
+  - `/api/status`
+- ✓ All API endpoints return expected JSON data:
+  - `GET /api/status` → `{"source":"...","branch":"main","isDirty":true}`
+  - `GET /api/branches` → `[{"name":"main","isDefault":true}]`
+  - `GET /api/tree` → nested TreeNode structure
+
+**Manual Testing:**
+- ✓ Three-zone layout visible (TopBar, Sidebar, ContentArea)
+- ✓ TopBar shows repo name (last path component), branch name, and dirty indicator (●)
+- ✓ Sidebar shows placeholder text "File tree coming soon..."
+- ✓ ContentArea shows placeholder with current route
+- ✓ Hamburger menu button visible in TopBar
+
+**Acceptance Criteria (PRD 3.2):**
+- ✅ Three zones visible on desktop (TopBar at top, Sidebar on left, ContentArea fills remaining space)
+- ✅ Sidebar collapses on narrow viewport (< 768px via CSS media query)
+- ✅ React Router set up with catch-all route
+- ✅ API client functions have correct URL shapes and type safety
+
+**Architecture Notes:**
+- Layout uses CSS Flexbox (not Grid) for flexibility
+- TopBar fetches status on mount; state managed locally with useState/useEffect
+- Sidebar collapse controlled by Layout state, passed as prop
+- Responsive behavior: fixed sidebar on desktop, slide-in overlay on mobile
+- All API calls go through dedicated client functions for maintainability
+- TypeScript type-only imports (`import type`) to satisfy `verbatimModuleSyntax`
+
+**Next Step:** Step 11 - File tree component
+
+---
+
