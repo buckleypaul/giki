@@ -294,9 +294,56 @@ func (p *LocalProvider) sortTree(node *TreeNode) {
 }
 
 // FileContent returns the raw bytes of a file at the given path.
-// Implementation deferred to Phase 2 (Step 7).
+// For the current branch, reads from working tree (includes uncommitted changes).
+// For other branches, reads from git object store (committed state only).
 func (p *LocalProvider) FileContent(path, branch string) ([]byte, error) {
-	return nil, fmt.Errorf("FileContent not yet implemented")
+	// Normalize path: strip leading/trailing slashes, convert to forward slashes
+	path = strings.Trim(path, "/")
+	path = filepath.ToSlash(path)
+
+	// Validate path is not empty
+	if path == "" {
+		return nil, fmt.Errorf("file not found")
+	}
+
+	// Security: validate path doesn't escape repository root
+	if strings.Contains(path, "..") {
+		return nil, fmt.Errorf("invalid path: cannot contain '..'")
+	}
+
+	// Determine if this is the current/HEAD branch
+	isCurrentBranch := (branch == "" || branch == p.branch)
+
+	if isCurrentBranch {
+		// Read from working tree (includes uncommitted changes)
+		fullPath := filepath.Join(p.path, filepath.FromSlash(path))
+
+		// Check if file exists
+		info, err := os.Stat(fullPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil, fmt.Errorf("file not found")
+			}
+			return nil, fmt.Errorf("failed to stat file: %w", err)
+		}
+
+		// Verify it's a file, not a directory
+		if info.IsDir() {
+			return nil, fmt.Errorf("path is a directory, not a file")
+		}
+
+		// Read file content
+		content, err := os.ReadFile(fullPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read file: %w", err)
+		}
+
+		return content, nil
+	}
+
+	// For other branches, read from git object store (committed state only)
+	// This will be implemented when we need branch switching (Step 15)
+	return nil, fmt.Errorf("reading non-current branches not yet implemented")
 }
 
 // Branches returns a list of all branches in the repository.

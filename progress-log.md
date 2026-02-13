@@ -175,3 +175,101 @@ This document tracks the completion of each step in the Giki implementation plan
 
 ---
 
+## Step 6: `/api/tree` endpoint
+**Date:** 2026-02-13
+**Phase:** Phase 2 - Core API Endpoints
+
+**Summary:**
+- Implemented `LocalProvider.Tree(branch)` method in `internal/git/local.go`
+- Reads from working tree for current branch (includes uncommitted changes)
+- Respects `.gitignore` rules using go-git's gitignore matcher
+- Builds nested `TreeNode` tree structure with proper sorting (directories first, then files, case-insensitive alphabetical)
+- Combines tracked and untracked non-ignored files using `worktree.Status()` and `filepath.Walk()`
+- Created `internal/server/handler_tree.go` with `GET /api/tree?branch=<branch>` endpoint returning JSON
+- Comprehensive test coverage in `internal/git/local_test.go` and `internal/server/handler_tree_test.go`
+
+**Files Created:**
+- `internal/server/handler_tree.go`
+- `internal/server/handler_tree_test.go`
+
+**Files Modified:**
+- `internal/git/local.go` (implemented Tree method and helper functions)
+- `internal/server/server.go` (wired handler into mux)
+
+**Test Results:**
+- ✓ All unit tests in `internal/git/local_test.go` passed (11 test functions covering tree structure, .gitignore, dotfiles, sorting)
+- ✓ All integration tests in `internal/server/handler_tree_test.go` passed (3 test functions)
+- ✓ `go vet ./...` passed with no issues
+- ✓ `make build` succeeded (binary: 9.4M)
+- ✓ Manual testing: `GET /api/tree` returns correct JSON tree structure
+
+**Acceptance Criteria (PRD 3.3):**
+- ✅ Tree matches `git ls-files` + untracked non-ignored files
+- ✅ Directories listed above files in sorted order
+- ✅ `.gitignore`d files excluded from tree
+- ✅ Tracked dotfiles (like `.github/`) included
+
+**Next Step:** Step 7 - `/api/file/<path>` endpoint
+
+---
+
+## Step 7: `/api/file/<path>` endpoint
+**Date:** 2026-02-13
+**Phase:** Phase 2 - Core API Endpoints
+
+**Summary:**
+- Implemented `LocalProvider.FileContent(path, branch)` method in `internal/git/local.go`
+- Reads raw file bytes from working tree for current branch
+- Includes path normalization, validation, and security checks (blocks `..` path traversal)
+- Returns proper errors for nonexistent files, directories, and invalid paths
+- Created `internal/server/handler_file.go` with `GET /api/file/<path>?branch=<branch>` endpoint
+- Automatically detects Content-Type using `mime.TypeByExtension()` with fallback to `http.DetectContentType()`
+- Returns 404 JSON response for missing files with proper error message
+- Created comprehensive unit tests in `internal/git/local_test.go` (5 new test functions)
+- Created integration tests in `internal/server/handler_file_test.go` (7 test functions covering various file types and error cases)
+
+**Files Created:**
+- `internal/server/handler_file.go`
+- `internal/server/handler_file_test.go`
+
+**Files Modified:**
+- `internal/git/local.go` (implemented FileContent method)
+- `internal/server/server.go` (wired handler into mux)
+- `internal/git/local_test.go` (added 5 unit tests for FileContent)
+
+**Test Results:**
+- ✓ All unit tests passed (16 test functions in `internal/git/local_test.go`)
+- ✓ All integration tests passed (7 test functions in `internal/server/handler_file_test.go`)
+- ✓ `go vet ./...` passed with no issues
+- ✓ `make build` succeeded (binary: 9.4M)
+- ✓ Manual testing:
+  - `GET /api/file/plan.md` returns markdown content with correct Content-Type
+  - `GET /api/file/nonexistent.md` returns 404 JSON: `{"error":"file not found"}`
+  - `GET /api/file/cmd/giki/main.go` returns Go source code with correct Content-Type
+
+**Unit Tests:**
+- ✓ Read known file, verify contents
+- ✓ Read nonexistent file, verify error
+- ✓ Attempt to read directory, verify error
+- ✓ Path traversal attacks blocked (e.g., `../../../etc/passwd`)
+- ✓ Nested file paths work correctly with forward slashes
+
+**Integration Tests:**
+- ✓ `GET /api/file/README.md` returns markdown text
+- ✓ `GET /api/file/nonexistent` returns 404 JSON
+- ✓ `.go` files return with text content-type
+- ✓ `.png` files return with image/png content-type
+- ✓ Nested paths work correctly
+- ✓ Directory requests return 404
+
+**Acceptance Criteria:**
+- ✅ Markdown files (`.md`) return with correct Content-Type
+- ✅ Go source files (`.go`) return with text Content-Type
+- ✅ Binary files (`.png`) return with correct image Content-Type
+- ✅ Nonexistent files return 404 JSON response
+- ✅ Security: Path traversal attempts are blocked
+
+**Next Step:** Step 8 - `/api/branches` endpoint
+
+---
+

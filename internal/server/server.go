@@ -30,6 +30,7 @@ func New(port int, provider git.GitProvider) *Server {
 
 	// Mount API handlers
 	mux.HandleFunc("GET /api/tree", s.handleTree)
+	mux.HandleFunc("GET /api/file/", s.handleFile)
 
 	// Check if we're in dev mode
 	devMode := os.Getenv("GIKI_DEV") == "1"

@@ -564,3 +564,236 @@ func TestTree_SortOrderCorrect(t *testing.T) {
 		}
 	}
 }
+
+// TestFileContent_ReadKnownFile tests reading a known file returns correct contents.
+func TestFileContent_ReadKnownFile(t *testing.T) {
+	tempDir := t.TempDir()
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	// Create test files
+	testContent := "# Test README\n\nThis is a test file."
+	readmePath := filepath.Join(tempDir, "README.md")
+	if err := os.WriteFile(readmePath, []byte(testContent), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	if _, err := w.Add("README.md"); err != nil {
+		t.Fatalf("failed to add file: %v", err)
+	}
+
+	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	// Create provider
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Read file content
+	content, err := provider.FileContent("README.md", "")
+	if err != nil {
+		t.Fatalf("FileContent() failed: %v", err)
+	}
+
+	if string(content) != testContent {
+		t.Errorf("expected content %q, got %q", testContent, string(content))
+	}
+}
+
+// TestFileContent_NonexistentFile tests that nonexistent files return proper error.
+func TestFileContent_NonexistentFile(t *testing.T) {
+	tempDir := t.TempDir()
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	// Create initial commit
+	readmePath := filepath.Join(tempDir, "README.md")
+	if err := os.WriteFile(readmePath, []byte("test"), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	if _, err := w.Add("README.md"); err != nil {
+		t.Fatalf("failed to add file: %v", err)
+	}
+
+	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Try to read nonexistent file
+	_, err = provider.FileContent("nonexistent.md", "")
+	if err == nil {
+		t.Fatal("expected error for nonexistent file, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "file not found") {
+		t.Errorf("expected error to contain 'file not found', got: %v", err)
+	}
+}
+
+// TestFileContent_Directory tests that reading a directory returns proper error.
+func TestFileContent_Directory(t *testing.T) {
+	tempDir := t.TempDir()
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	// Create directory with a file inside
+	docsDir := filepath.Join(tempDir, "docs")
+	if err := os.MkdirAll(docsDir, 0755); err != nil {
+		t.Fatalf("failed to create directory: %v", err)
+	}
+
+	filePath := filepath.Join(docsDir, "test.md")
+	if err := os.WriteFile(filePath, []byte("test"), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	if _, err := w.Add("docs/test.md"); err != nil {
+		t.Fatalf("failed to add file: %v", err)
+	}
+
+	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Try to read directory as if it were a file
+	_, err = provider.FileContent("docs", "")
+	if err == nil {
+		t.Fatal("expected error for directory, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "directory") {
+		t.Errorf("expected error to mention 'directory', got: %v", err)
+	}
+}
+
+// TestFileContent_PathTraversalBlocked tests that path traversal attempts are blocked.
+func TestFileContent_PathTraversalBlocked(t *testing.T) {
+	tempDir := t.TempDir()
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	// Create initial commit
+	readmePath := filepath.Join(tempDir, "README.md")
+	if err := os.WriteFile(readmePath, []byte("test"), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	if _, err := w.Add("README.md"); err != nil {
+		t.Fatalf("failed to add file: %v", err)
+	}
+
+	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Try path traversal attacks
+	attacks := []string{
+		"../../../etc/passwd",
+		"docs/../../etc/passwd",
+		"..%2F..%2F..%2Fetc%2Fpasswd",
+	}
+
+	for _, attack := range attacks {
+		_, err := provider.FileContent(attack, "")
+		if err == nil {
+			t.Errorf("path traversal attack %q should have been blocked", attack)
+		}
+		if !strings.Contains(err.Error(), "invalid path") && !strings.Contains(err.Error(), "file not found") {
+			t.Errorf("expected security error for %q, got: %v", attack, err)
+		}
+	}
+}
+
+// TestFileContent_NestedFile tests reading a file in nested directories.
+func TestFileContent_NestedFile(t *testing.T) {
+	tempDir := t.TempDir()
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("failed to get worktree: %v", err)
+	}
+
+	// Create nested file
+	testContent := "package utils\n\nfunc Helper() {}"
+	nestedPath := filepath.Join(tempDir, "src", "utils", "helper.go")
+	if err := os.MkdirAll(filepath.Dir(nestedPath), 0755); err != nil {
+		t.Fatalf("failed to create directory: %v", err)
+	}
+	if err := os.WriteFile(nestedPath, []byte(testContent), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	if _, err := w.Add("src/utils/helper.go"); err != nil {
+		t.Fatalf("failed to add file: %v", err)
+	}
+
+	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+		t.Fatalf("failed to commit: %v", err)
+	}
+
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Read nested file with forward slashes (git convention)
+	content, err := provider.FileContent("src/utils/helper.go", "")
+	if err != nil {
+		t.Fatalf("FileContent() failed: %v", err)
+	}
+
+	if string(content) != testContent {
+		t.Errorf("expected content %q, got %q", testContent, string(content))
+	}
+}
