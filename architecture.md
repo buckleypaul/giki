@@ -64,12 +64,18 @@ For production builds, `make build` runs the frontend build first, then embeds t
 
 ### Backend (Go)
 
-- **CLI layer** (`internal/cli`): Argument parsing, validation, browser opening _(to be implemented in Step 4)_
+- **CLI layer** (`internal/cli`): ✓ Implemented in Step 4
+  - `root.go`: Cobra-based command with flags (--port, --branch), argument parsing, path/URL detection
+  - Port availability checking, browser opening
+  - Git repository validation before server start (Step 5)
 - **Server layer** (`internal/server`): ✓ Implemented in Step 3
   - `server.go`: HTTP server setup, port binding, mux configuration
   - `spa.go`: SPA handler with embedded FS serving and dev mode proxy support
   - API handlers _(to be implemented in Phase 2)_
-- **Git layer** (`internal/git`): Repository operations via go-git _(to be implemented starting Step 5)_
+- **Git layer** (`internal/git`): ✓ Interface defined in Step 5, implementation in progress
+  - `provider.go`: GitProvider interface with Tree, FileContent, Branches, Status methods
+  - `local.go`: LocalProvider implementation for local repositories (validation complete)
+  - Methods Tree/FileContent/Branches/Status to be implemented in Phase 2
 - **Config layer** (`internal/config`): Configuration file and environment variable handling _(to be implemented in Step 25)_
 
 ### Frontend (React)
@@ -93,8 +99,10 @@ For production builds, `make build` runs the frontend build first, then embeds t
 - Step 1: Project scaffold, Go module, Makefile ✓
 - Step 2: GitHub repository setup ✓
 - Step 3: Vite + React scaffold with embed.FS wiring ✓
+- Step 4: CLI with Cobra (flags, argument parsing, browser open) ✓
+- Step 5: Git provider interface + local repo validation ✓
 
 **Next Step:**
-- Step 4: CLI with Cobra (flags, argument parsing, browser open)
+- Step 6: `/api/tree` endpoint (Phase 2: Core API Endpoints)
 
 See `progress-log.md` for detailed implementation history.

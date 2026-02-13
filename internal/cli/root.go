@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/buckleypaul/giki/internal/git"
 	"github.com/buckleypaul/giki/internal/server"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
@@ -64,12 +65,20 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("path does not exist: %s", absPath)
 	}
 
+	// Validate it's a git repository and resolve the branch
+	provider, err := git.NewLocalProvider(absPath, branch)
+	if err != nil {
+		return err
+	}
+
 	// Check if port is available before starting the server
 	if err := checkPortAvailable(port); err != nil {
 		return err
 	}
 
 	// Create and start the server
+	// Note: provider will be passed to server in Phase 2 when API endpoints are implemented
+	_ = provider // unused for now
 	srv := server.New(port)
 
 	// Start server in a goroutine so we can open the browser

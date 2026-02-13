@@ -126,3 +126,52 @@ This document tracks the completion of each step in the Giki implementation plan
 
 ---
 
+## Step 5: Git provider interface + local repo validation
+**Date:** 2026-02-13
+**Phase:** Phase 1 - Foundation
+
+**Summary:**
+- Created `internal/git/provider.go` — `GitProvider` interface with four methods (Tree, FileContent, Branches, Status)
+- Defined types: `TreeNode`, `BranchInfo`, `RepoStatus` (used in future phases)
+- Created `internal/git/local.go` — `LocalProvider` struct implementing validation:
+  - `NewLocalProvider(path, branch)` opens repo with `go-git PlainOpen`, validates git repo
+  - Resolves HEAD branch if no explicit branch provided
+  - Returns proper error messages for non-git directories and nonexistent branches
+  - Methods Tree/FileContent/Branches/Status are stubs (to be implemented in Phase 2)
+- Wired CLI to create `LocalProvider` before starting server in `internal/cli/root.go`
+- Added go-git v5.16.5 dependency to `go.mod`
+- Created comprehensive test suite in `internal/git/local_test.go`:
+  - Test opening giki repo itself
+  - Test non-git directory error
+  - Test nonexistent branch error
+  - Test HEAD branch resolution
+  - Test explicit branch specification
+
+**Files Created:**
+- `internal/git/provider.go`
+- `internal/git/local.go`
+- `internal/git/local_test.go`
+
+**Files Modified:**
+- `internal/cli/root.go` (added git validation before server start)
+- `go.mod`, `go.sum` (added go-git and transitive dependencies)
+
+**Test Results:**
+- ✓ All tests in `internal/git/local_test.go` passed (5 test functions)
+- ✓ All tests in `internal/cli/root_test.go` passed (14 subtests)
+- ✓ `go vet ./...` passed with no issues
+- ✓ `make build` succeeded (binary: 9.4M)
+- ✓ `./giki .` in git repo starts successfully (validated)
+- ✓ `./giki /tmp/not-a-git-repo` prints "Error: /tmp/not-a-git-repo is not a git repository"
+- ✓ `./giki --branch nonexistent .` prints "Error: branch 'nonexistent' not found"
+- ✓ `./giki /tmp/nonexistent` prints "Error: path does not exist: /tmp/nonexistent"
+
+**Acceptance Criteria (PRD 3.1):**
+- ✅ `giki .` inside git repo starts successfully
+- ✅ `giki .` outside git repo prints error, exits non-zero
+- ✅ `giki --branch nonexistent .` prints error, exits non-zero
+
+**Next Step:** Step 6 - `/api/tree` endpoint
+
+---
+
