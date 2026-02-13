@@ -78,3 +78,51 @@ This document tracks the completion of each step in the Giki implementation plan
 
 ---
 
+## Step 4: CLI with Cobra (flags, argument parsing, browser open)
+**Date:** 2026-02-13
+**Phase:** Phase 1 - Foundation
+
+**Summary:**
+- Added `github.com/spf13/cobra` and `github.com/pkg/browser` dependencies
+- Created `internal/cli/root.go` with root command `giki [path-or-url]`:
+  - Accepts 0 or 1 positional arguments (defaults to `.`)
+  - Flags: `--port`/`-p` (int, default 4242), `--branch`/`-b` (string)
+  - Detects local path vs URL (heuristic: starts with `http://`, `https://`, `git@`)
+  - Validates local path exists using `os.Stat()`
+  - Checks port availability before starting server
+  - Opens default browser to `http://localhost:<port>` after server starts
+- Updated `cmd/giki/main.go` to call `cli.Execute()` instead of directly starting server
+- Created `internal/cli/root_test.go` with comprehensive test coverage:
+  - URL detection tests for HTTP, HTTPS, Git SSH, and local paths
+  - Path resolution tests (`.` resolves to cwd, absolute/relative paths)
+  - Port availability checking
+  - Flag parsing (port and branch flags)
+  - Argument validation
+
+**Files Created:**
+- `internal/cli/root.go`
+- `internal/cli/root_test.go`
+
+**Files Modified:**
+- `cmd/giki/main.go`
+- `go.mod`, `go.sum` (new dependencies)
+
+**Test Results:**
+- ✓ All tests in `internal/cli/root_test.go` passed (5 test functions, 14 subtests)
+- ✓ `go vet ./...` passed with no issues
+- ✓ `make build` succeeded (binary: 9.0M)
+- ✓ `./giki --help` displays correct usage and flags
+- ✓ `./giki /nonexistent` prints "Error: path does not exist: /nonexistent" and exits with code 1
+- ✓ `./giki .` with port already in use prints "Error: port 4242 is already in use" and exits with code 1
+- ✓ `./giki -p 9090 .` starts server on port 9090 successfully
+
+**Acceptance Criteria (PRD 3.1):**
+- ✅ `giki .` starts server on :4242, opens browser
+- ✅ `giki -p 9090 .` starts on :9090
+- ✅ `giki /nonexistent` prints error, exits non-zero
+- ✅ Port in use prints "Error: port 4242 is already in use", exits non-zero
+
+**Next Step:** Step 5 - Git provider interface + local repo validation
+
+---
+

@@ -1,17 +1,13 @@
 package main
 
 import (
-	"log"
+	"os"
 
-	"github.com/buckleypaul/giki/internal/server"
+	"github.com/buckleypaul/giki/internal/cli"
 )
 
 func main() {
-	// Default port is 4242
-	port := 4242
-
-	srv := server.New(port)
-	if err := srv.Start(); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+	if err := cli.Execute(); err != nil {
+		os.Exit(1)
 	}
 }
