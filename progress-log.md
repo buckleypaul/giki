@@ -1129,3 +1129,123 @@ giki version dev
 
 ---
 
+## Step 16: Pending changes state management
+**Date:** 2026-02-13
+**Phase:** Phase 4 - Editing & File Management
+
+**Summary:**
+- Created `ui/src/context/PendingChangesContext.tsx` — React context for managing pending file changes:
+  - `PendingChange` type with fields: `type` (create/modify/delete/move), `path`, `oldPath`, `content`
+  - Context provider with five methods: `addChange()`, `removeChange()`, `getChanges()`, `clearChanges()`, `getModifiedContent()`
+  - `addChange()` replaces existing change for same path (update in-place behavior)
+  - `getModifiedContent(path)` returns content only for 'modify' type changes, null otherwise
+  - Hook `usePendingChanges()` throws error when used outside provider
+- Updated `ui/src/App.tsx` to wrap with `<PendingChangesProvider>` alongside `BranchProvider`
+- Updated `ui/src/components/ContentArea.tsx`:
+  - Imports `usePendingChanges` hook
+  - Calls `getModifiedContent(filePath)` to check for pending content
+  - Passes `pendingContent` prop to `FileViewer` when modified file exists
+- Updated `ui/src/components/FileViewer.tsx`:
+  - Added optional `pendingContent` prop to interface
+  - Modified `useEffect` to check for pending content first before fetching from API
+  - If `pendingContent` exists, uses it directly and skips API fetch
+  - Pending content treated as text/code (file type determined from extension)
+- Updated `ui/src/components/TopBar.tsx`:
+  - Imports `usePendingChanges` hook
+  - Calls `getChanges()` to get pending changes count
+  - Displays blue badge with count when `pendingChangesCount > 0`
+  - Badge hidden when count is 0
+  - Badge shows tooltip with count and plural handling
+- Updated `ui/src/components/TopBar.css`:
+  - Added `.topbar-pending-badge` styles with blue background, white text, rounded pill shape
+- Updated `ui/src/components/ContentArea.test.tsx`:
+  - Wrapped all test cases with `<PendingChangesProvider>` to avoid context usage errors
+- Created comprehensive test suite in `ui/src/context/PendingChangesContext.test.tsx` (19 tests):
+  - Hook validation: throws error when used outside provider
+  - `addChange()`: adds new change, handles multiple changes, replaces existing change for same path, supports all change types
+  - `removeChange()`: removes change by path, preserves other changes, handles non-existent paths
+  - `getChanges()`: returns empty array initially, returns all pending changes
+  - `clearChanges()`: removes all changes, handles empty state
+  - `getModifiedContent()`: returns content for modified files, returns null for unmodified or other change types
+  - Component integration: renders children correctly, allows multiple consumers to share state
+
+**Files Created:**
+- `ui/src/context/PendingChangesContext.tsx`
+- `ui/src/context/PendingChangesContext.test.tsx`
+
+**Files Modified:**
+- `ui/src/App.tsx` (wrapped with PendingChangesProvider)
+- `ui/src/components/ContentArea.tsx` (added pending content check)
+- `ui/src/components/ContentArea.test.tsx` (added provider wrapper to all tests)
+- `ui/src/components/FileViewer.tsx` (added pendingContent prop and logic)
+- `ui/src/components/TopBar.tsx` (added pending changes badge)
+- `ui/src/components/TopBar.css` (added badge styles)
+
+**Test Results:**
+- ✓ All 128 Vitest tests passed across 11 test suites
+  - PendingChangesContext: 19 tests (all methods tested, error handling, integration)
+  - ContentArea: 8 tests (all wrapped with provider, still passing)
+  - All previous component tests still passing
+- ✓ All Go tests passed (24 tests in cli, git, server packages)
+- ✓ `go vet ./...` passed with no issues
+- ✓ Frontend builds successfully (`npm run build`)
+- ✓ Go binary builds with embedded frontend (13M)
+- ✓ `make build` succeeded
+
+**Vitest Test Coverage (PendingChangesContext):**
+1. **Hook validation (2 tests):**
+   - Throws error when used outside provider
+   - Provides context methods when used within provider
+
+2. **addChange method (4 tests):**
+   - Adds single change to list
+   - Adds multiple changes
+   - Replaces existing change for same path (update-in-place)
+   - Supports all 4 change types (create, modify, delete, move)
+
+3. **removeChange method (3 tests):**
+   - Removes change by path
+   - Preserves other changes when removing one
+   - Handles non-existent path gracefully
+
+4. **getChanges method (2 tests):**
+   - Returns empty array initially
+   - Returns all pending changes
+
+5. **clearChanges method (2 tests):**
+   - Removes all pending changes
+   - Handles clearing when already empty
+
+6. **getModifiedContent method (4 tests):**
+   - Returns content for modified file (type='modify')
+   - Returns null for unmodified file
+   - Returns null for non-modify change types (create, delete, move)
+   - Handles non-existent path
+
+7. **Component integration (2 tests):**
+   - Renders children correctly
+   - Multiple consumers access same state
+
+**Acceptance Criteria (Plan Step 16):**
+- ✅ Badge shows pending changes count (TopBar badge visible when count > 0)
+- ✅ Badge hidden when count is 0 (conditional rendering)
+- ✅ `getModifiedContent(path)` returns pending content for modified files
+- ✅ `getModifiedContent(path)` returns null for unmodified files
+- ✅ Clear operation resets all pending changes (`clearChanges()` tested)
+- ✅ Context throws error when used outside provider (test verified)
+- ✅ Add/remove changes updates count (tests verify state management)
+
+**Architecture Notes:**
+- PendingChangesContext follows same pattern as BranchContext (Step 15 reference)
+- All pending changes held in React state (browser memory only, not persisted)
+- Changes keyed by `path` — adding duplicate path replaces previous change
+- Badge uses blue background (#3b82f6) to distinguish from dirty indicator (orange)
+- FileViewer checks for pending content before API fetch (performance optimization)
+- ContentArea passes pending content down to FileViewer as prop
+- Type-safe integration with TypeScript strict mode and `verbatimModuleSyntax`
+- No backend changes required for Step 16 (purely frontend state management)
+
+**Next Step:** Step 17 - In-browser editor with CodeMirror
+
+---
+
