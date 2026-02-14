@@ -47,6 +47,7 @@
   background: var(--bg-secondary, #f9fafb);
   color: var(--text-primary, #1f2937);
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 .dialog-input:focus {
@@ -151,6 +152,7 @@
   font-family: inherit;
   resize: vertical;
   min-height: 80px;
+  box-sizing: border-box;
 }
 
 .dialog-textarea:focus {
