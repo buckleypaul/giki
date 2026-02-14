@@ -132,6 +132,15 @@ This project follows a granular step-by-step implementation plan (`plan.md`). Ea
 - **React**: Relative links in markdown → React Router `<Link>` (SPA nav); external links → `<a target="_blank">`
 - **Images**: Relative images rewritten to `/api/file/<resolved-path>` endpoint
 
+### Folder Operations
+
+Users can rename/move folders via the edit button (✎) in the sidebar:
+- Click edit next to a folder name
+- Enter new path (can move to different parent directory)
+- Creates a `move-folder` pending change
+- On commit, executes `git mv` to move folder and all contents
+- Validates against self-nesting and existing paths
+
 ## Testing Requirements
 
 ### Go Tests
