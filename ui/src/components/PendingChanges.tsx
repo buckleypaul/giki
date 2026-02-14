@@ -159,18 +159,14 @@ function ChangeItem({ change, onDiscard }: ChangeItemProps) {
     }
 
     if (change.type === 'create' || change.type === 'modify') {
-      const lines = change.content?.split('\n') || [];
-      const lineCount = lines.length;
       return (
         <div className="change-diff">
           <div className="change-path">{change.path}</div>
-          <div className="change-stats">
-            {change.type === 'create' ? (
-              <span className="change-stat-add">+{lineCount} lines</span>
-            ) : (
-              <span className="change-stat-modify">~{lineCount} lines</span>
-            )}
-          </div>
+          {change.type === 'create' && (
+            <div className="change-stats">
+              <span className="change-stat-add">+{change.content?.split('\n').length || 0} lines</span>
+            </div>
+          )}
         </div>
       );
     }
