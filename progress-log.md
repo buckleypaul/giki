@@ -1917,3 +1917,254 @@ giki version dev
 
 ---
 
+
+## Step 22: Search (Fuzzy Filename + Full-Text Content)
+
+**Date:** 2026-02-13  
+**Commit:** 905d708
+
+**Summary:**
+Implemented comprehensive search functionality with fuzzy filename matching and full-text content search. Users can press Cmd+K/Ctrl+K to open a modal search panel, toggle between filename and content search modes, and navigate directly to results. Backend performs intelligent filtering (skips binary files) and returns contextual information for content matches.
+
+**Backend Changes:**
+
+*GitProvider Interface (internal/git/provider.go):*
+- Added `SearchFileNames(query string) ([]string, error)` - fuzzy filename matching
+- Added `SearchContent(query string) ([]SearchResult, error)` - full-text search
+- Added `SearchResult` type with path, lineNumber, context, and matchText fields
+
+*LocalProvider Implementation (internal/git/local.go):*
+- Implemented fuzzy filename matching with relevance scoring:
+  - Exact match: 1000 points
+  - Exact substring: 100 points  
+  - Characters in order: 50 points
+- Implemented full-text content search:
+  - Case-insensitive substring matching
+  - Returns line number and 2-3 lines of context
+  - Preserves original case in matchText for highlighting
+  - Binary file detection using UTF-8 validation + null byte check
+- Limited results to 50 items for performance
+- Used existing tree-building infrastructure (respects .gitignore)
+
+*API Handler (internal/server/handler_search.go):*
+- `GET /api/search?q=<query>&type=<filename|content>`
+- Validates search type parameter (400 for invalid)
+- Returns JSON array of paths (filename mode) or SearchResult objects (content mode)
+
+**Frontend Changes:**
+
+*API Client (ui/src/api/client.ts, types.ts):*
+- Added `search(query, type)` function
+- Added `SearchResult` interface matching backend type
+- Converts filename results to SearchResult format for consistency
+
+*SearchPanel Component (ui/src/components/SearchPanel.tsx):*
+- Modal dialog with input field and mode toggle buttons
+- Debounced search (300ms) to reduce API calls
+- Toggle between "Filename" and "Content" modes
+- Results list with clickable items:
+  - Filename mode: shows file path
+  - Content mode: shows path:lineNumber + context preview
+- Loading state during search
+- Error handling with user-friendly messages
+- "No results found" empty state
+- Hint message when query is empty
+- Escape key closes panel
+- Click overlay to close (click inside stays open)
+- Auto-focus input when panel opens
+- Limit display to first 50 results
+
+*Layout Integration (ui/src/components/Layout.tsx):*
+- Global keyboard listener for Cmd+K (Mac) / Ctrl+K (Win/Linux)
+- Manages SearchPanel open/close state
+- Prevents default browser behavior for Ctrl+K
+
+*Styling (ui/src/components/SearchPanel.css):*
+- Modal overlay with semi-transparent background
+- Centered panel with max-width 600px, max-height 70vh
+- Toggle buttons with active state styling
+- Scrollable results area
+- Context preview with monospace font
+- Light/dark mode support via CSS custom properties
+- Responsive design (90% width on mobile)
+
+**Testing:**
+
+*Go Unit Tests (internal/git/local_test.go):*
+1. TestSearchFileNames_FuzzyMatch - validates "setup" matches docs/setup.md, src/setup.go
+2. TestSearchFileNames_NoMatches - empty results for non-existent query
+3. TestSearchFileNames_ExactMatch - exact matches ranked first
+4. TestSearchContent_FindsMatches - finds "install" with line numbers and context
+5. TestSearchContent_CaseInsensitive - "install" matches "INSTALL", preserves case
+6. TestSearchContent_SkipsBinary - binary files excluded from results
+7. TestSearchContent_ContextLines - verifies 2-3 lines of context included
+8. (Total 8 new tests, all passing)
+
+*Go Integration Tests (internal/server/handler_search_test.go):*
+1. TestHandleSearch_Filename - GET /api/search?q=setup&type=filename returns matching files
+2. TestHandleSearch_Content - GET /api/search?q=install&type=content returns matches with context
+3. TestHandleSearch_InvalidType - invalid type returns 400 Bad Request
+4. TestHandleSearch_EmptyQuery - empty query returns empty array (200 OK)
+(Total 4 new tests, all passing)
+
+*Frontend Vitest Tests (ui/src/components/SearchPanel.test.tsx):*
+1. Does not render when isOpen=false
+2. Renders when isOpen=true
+3. Renders search input and toggle buttons
+4. Shows filename mode as active by default
+5. Switches to content mode on button click
+6. Debounces search requests (300ms)
+7. Calls search API with filename type
+8. Calls search API with content type
+9. Displays filename search results
+10. Displays content results with line numbers and context
+11. Shows "No results found" for empty results
+12. Shows loading state during search
+13. Shows error message on search failure
+14. Closes on Escape key
+15. Closes on overlay click
+16. Does not close when clicking inside panel
+17. Limits results to 50 items
+18. Shows hint message when query is empty
+19. Clears results when query is cleared
+(Total 19 new tests, all passing)
+
+**Test Results:**
+```
+Go tests: ok github.com/buckleypaul/giki/internal/git (cached)
+Go tests: ok github.com/buckleypaul/giki/internal/server 0.617s
+Frontend tests: ✓ src/components/SearchPanel.test.tsx (19 tests) 3133ms
+All tests passing (100% pass rate)
+```
+
+**Acceptance Criteria (Plan Step 22 / PRD 3.13):**
+- ✅ Fuzzy filename search: query matches paths, results are clickable
+- ✅ Full-text search: returns matches with context (surrounding lines visible)
+- ✅ Clicking filename result navigates to file in SPA
+- ✅ Clicking content result navigates to file + line number (hash #L5)
+- ✅ Search is case-insensitive for content queries
+- ✅ Cmd+K / Ctrl+K opens search modal
+- ✅ Escape closes search modal
+- ✅ Results debounced (300ms) for performance
+- ✅ Binary files are skipped (no searching inside)
+- ✅ Search respects current branch selection
+- ✅ Results limited to 50 items displayed
+- ✅ Light/dark mode support
+- ✅ All tests passing (Go + Frontend)
+
+**Architecture Notes:**
+- SearchPanel is a modal component managed by Layout state
+- Uses existing useBranch context (searches current branch only)
+- Backend reuses tree-building infrastructure (gitignore handling, file walking)
+- Frontend debouncing prevents excessive API calls during typing
+- Binary detection uses simple heuristics (UTF-8 validity + null byte check)
+- Fuzzy matching uses character-based scoring (not full-text indexing)
+- Navigation integration with React Router (SPA navigation, no page refresh)
+- All components type-safe with TypeScript strict mode
+
+**Next Step:** Step 23 - Theme Toggle (Light/Dark Mode with Local Storage Persistence)
+
+---
+
+## Step 23 — Theme Toggle (Light/Dark Mode) ✅ DONE
+**Date:** 2026-02-13  
+**Commit:** fcd1eea
+
+**Objective:**  
+Add light/dark mode toggle with localStorage persistence and system preference detection (PRD 3.14).
+
+**Implementation:**
+
+*ThemeContext (ui/src/context/ThemeContext.tsx):*
+- `ThemeProvider` component wraps entire app
+- `useTheme()` hook provides `theme` and `toggleTheme()` 
+- On mount: checks localStorage first, falls back to `prefers-color-scheme`
+- On theme change: updates `data-theme` attribute on `<html>` element
+- Saves theme preference to localStorage as `giki-theme`
+- Type-safe with `Theme = 'light' | 'dark'`
+
+*ThemeToggle Component (ui/src/components/ThemeToggle.tsx):*
+- Sun emoji (☀️) for dark mode → click to switch to light
+- Moon emoji (🌙) for light mode → click to switch to dark
+- Positioned on right side of TopBar
+- Accessible with aria-label and title attributes
+- Smooth hover transition
+
+*Centralized Theme Styles (ui/src/styles/themes.css):*
+- Defines all CSS custom properties for both themes
+- Light theme: `--bg-primary: #ffffff`, `--text-primary: #333333`, etc.
+- Dark theme: `--bg-primary: #121212`, `--text-primary: #e0e0e0`, etc.
+- Includes colors for backgrounds, text, borders, accents, status, code, links, shadows
+- Global transition rules for smooth theme switching (excluding specific elements)
+
+*Component CSS Updates (ui/src/components/*.css):*
+- Removed all `@media (prefers-color-scheme: dark)` media queries
+- All components now use CSS custom properties from themes.css
+- Consistent theming across all 19+ component CSS files
+- No hardcoded color values (all via variables)
+
+*Syntax Highlighting Theme Switching (ui/src/main.tsx):*
+- Dynamically loads highlight.js theme based on current theme
+- Light mode: `github.min.css` (from CDN)
+- Dark mode: `github-dark.min.css` (from CDN)
+- Uses MutationObserver to watch `data-theme` attribute changes
+- Automatically swaps stylesheet link when theme changes
+- Ensures code syntax highlighting matches app theme
+
+*App Integration (ui/src/App.tsx):*
+- Wrapped app with `<ThemeProvider>` (outermost provider)
+- Provider order: BrowserRouter → ThemeProvider → BranchProvider → PendingChangesProvider
+
+*Base Styles (ui/src/index.css):*
+- Updated to use CSS custom properties for body, headings, links
+- Removed Vite default theme-specific styles
+- Clean, minimal base styles that adapt to theme
+
+**Testing:**
+
+*Frontend Vitest Tests (ui/src/context/ThemeContext.test.tsx):*
+1. useTheme throws error when used outside provider
+2. useTheme provides context when used within provider
+3. Defaults to light theme when no localStorage and system is light
+4. Defaults to dark theme when system preference is dark
+5. Uses localStorage value over system preference
+6. Toggles from light to dark
+7. Toggles from dark to light
+8. Can toggle multiple times (round-trip)
+9. Saves theme to localStorage when changed
+10. Sets data-theme attribute on html element
+(Total 10 new tests, all passing)
+
+**Test Results:**
+```
+Go tests: all passing (no changes)
+Frontend tests: ✓ src/context/ThemeContext.test.tsx (10 tests) 22ms
+All tests passing (100% pass rate)
+```
+
+**Acceptance Criteria (Plan Step 23 / PRD 3.14):**
+- ✅ Dark mode system pref → dark default
+- ✅ Light mode system pref → light default
+- ✅ Toggle button works (sun/moon emoji)
+- ✅ Theme persists across page reloads (localStorage)
+- ✅ data-theme attribute updates on html element
+- ✅ All components respect theme via CSS custom properties
+- ✅ Syntax highlighting matches theme (github vs github-dark)
+- ✅ Smooth transitions between themes
+- ✅ All tests passing (Go + Frontend)
+
+**Architecture Notes:**
+- ThemeProvider wraps entire app (context available everywhere)
+- Single source of truth for theme (ThemeContext state)
+- CSS custom properties enable instant theme switching without component re-renders
+- MutationObserver pattern for external stylesheet management (syntax highlighting)
+- localStorage key: `giki-theme` stores "light" or "dark"
+- System preference detection via `window.matchMedia('(prefers-color-scheme: dark)')`
+- Theme decision hierarchy: localStorage > system preference > default (light)
+- All color values centralized in themes.css (maintainability)
+- No inline styles or hardcoded colors in components
+- TypeScript strict mode with full type safety
+
+**Next Step:** Step 24 - Remote Repository Cloning (Clone-First for Remote URLs)
+
+---
