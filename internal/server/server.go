@@ -37,6 +37,7 @@ func New(port int, provider git.GitProvider) *Server {
 	mux.HandleFunc("POST /api/write", s.handleWrite)
 	mux.HandleFunc("POST /api/delete", s.handleDelete)
 	mux.HandleFunc("POST /api/move", s.handleMove)
+	mux.HandleFunc("POST /api/move-folder", s.handleMoveFolder)
 	mux.HandleFunc("POST /api/commit", s.handleCommit)
 	mux.HandleFunc("GET /api/search", s.handleSearch)
 	mux.HandleFunc("GET /api/themes", s.handleThemes)
