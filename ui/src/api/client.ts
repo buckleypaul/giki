@@ -3,6 +3,7 @@
 // and served by Go server directly in production
 
 import type { TreeNode, BranchInfo, RepoStatus, SearchResult } from './types';
+import type { ThemeDefinition } from '../themes/types';
 
 /**
  * Fetches the file tree for the specified branch
@@ -171,5 +172,14 @@ export async function search(
     return paths.map((path) => ({ path }));
   }
 
+  return response.json();
+}
+
+/**
+ * Fetches user-installed themes from ~/.config/giki/themes/
+ */
+export async function fetchUserThemes(): Promise<ThemeDefinition[]> {
+  const response = await fetch('/api/themes');
+  if (!response.ok) return [];
   return response.json();
 }

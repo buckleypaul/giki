@@ -3,6 +3,11 @@ import { renderHook, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { ThemeProvider, useTheme } from './ThemeContext';
 
+// Mock the API client
+vi.mock('../api/client', () => ({
+  fetchUserThemes: vi.fn(() => Promise.resolve([])),
+}));
+
 describe('ThemeContext', () => {
   let localStorageMock: { [key: string]: string };
   let matchMediaMock: {
@@ -41,8 +46,10 @@ describe('ThemeContext', () => {
       writable: true,
     });
 
-    // Mock document.documentElement.setAttribute
+    // Mock document.documentElement methods
     document.documentElement.setAttribute = vi.fn();
+    vi.spyOn(document.documentElement.style, 'setProperty');
+    vi.spyOn(document.documentElement.style, 'removeProperty');
   });
 
   afterEach(() => {
@@ -51,7 +58,6 @@ describe('ThemeContext', () => {
 
   describe('useTheme hook', () => {
     it('throws error when used outside provider', () => {
-      // Suppress console.error for this test since we expect an error
       const originalError = console.error;
       console.error = () => {};
 
@@ -69,9 +75,11 @@ describe('ThemeContext', () => {
 
       const { result } = renderHook(() => useTheme(), { wrapper });
 
+      expect(result.current.themeId).toBeDefined();
       expect(result.current.theme).toBeDefined();
-      expect(result.current.toggleTheme).toBeDefined();
-      expect(typeof result.current.toggleTheme).toBe('function');
+      expect(result.current.setThemeId).toBeDefined();
+      expect(result.current.availableThemes).toBeDefined();
+      expect(typeof result.current.setThemeId).toBe('function');
     });
   });
 
@@ -85,7 +93,8 @@ describe('ThemeContext', () => {
 
       const { result } = renderHook(() => useTheme(), { wrapper });
 
-      expect(result.current.theme).toBe('light');
+      expect(result.current.themeId).toBe('light');
+      expect(result.current.theme.type).toBe('light');
     });
 
     it('defaults to dark theme when system preference is dark', () => {
@@ -97,7 +106,8 @@ describe('ThemeContext', () => {
 
       const { result } = renderHook(() => useTheme(), { wrapper });
 
-      expect(result.current.theme).toBe('dark');
+      expect(result.current.themeId).toBe('dark');
+      expect(result.current.theme.type).toBe('dark');
     });
 
     it('uses localStorage value over system preference', () => {
@@ -110,101 +120,147 @@ describe('ThemeContext', () => {
 
       const { result } = renderHook(() => useTheme(), { wrapper });
 
-      expect(result.current.theme).toBe('light');
+      expect(result.current.themeId).toBe('light');
+    });
+
+    it('handles backwards-compatible light/dark localStorage values', () => {
+      localStorageMock['giki-theme'] = 'dark';
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ThemeProvider>{children}</ThemeProvider>
+      );
+
+      const { result } = renderHook(() => useTheme(), { wrapper });
+
+      expect(result.current.themeId).toBe('dark');
+      expect(result.current.theme.id).toBe('dark');
     });
   });
 
-  describe('toggleTheme', () => {
-    it('toggles from light to dark', () => {
-      matchMediaMock.matches = false; // Start with light
-
+  describe('setThemeId', () => {
+    it('switches to a valid theme', () => {
       const wrapper = ({ children }: { children: ReactNode }) => (
         <ThemeProvider>{children}</ThemeProvider>
       );
 
       const { result } = renderHook(() => useTheme(), { wrapper });
 
-      expect(result.current.theme).toBe('light');
-
       act(() => {
-        result.current.toggleTheme();
+        result.current.setThemeId('dracula');
       });
 
-      expect(result.current.theme).toBe('dark');
+      expect(result.current.themeId).toBe('dracula');
+      expect(result.current.theme.id).toBe('dracula');
     });
 
-    it('toggles from dark to light', () => {
-      matchMediaMock.matches = true; // Start with dark
-
+    it('ignores invalid theme IDs', () => {
       const wrapper = ({ children }: { children: ReactNode }) => (
         <ThemeProvider>{children}</ThemeProvider>
       );
 
       const { result } = renderHook(() => useTheme(), { wrapper });
-
-      expect(result.current.theme).toBe('dark');
+      const initialId = result.current.themeId;
 
       act(() => {
-        result.current.toggleTheme();
+        result.current.setThemeId('nonexistent-theme');
       });
 
-      expect(result.current.theme).toBe('light');
+      expect(result.current.themeId).toBe(initialId);
     });
 
-    it('can toggle multiple times', () => {
+    it('can switch between multiple themes', () => {
       const wrapper = ({ children }: { children: ReactNode }) => (
         <ThemeProvider>{children}</ThemeProvider>
       );
 
       const { result } = renderHook(() => useTheme(), { wrapper });
 
-      const initialTheme = result.current.theme;
+      act(() => {
+        result.current.setThemeId('solarized-dark');
+      });
+      expect(result.current.themeId).toBe('solarized-dark');
 
       act(() => {
-        result.current.toggleTheme();
+        result.current.setThemeId('catppuccin-mocha');
       });
-
-      const afterFirstToggle = result.current.theme;
-      expect(afterFirstToggle).not.toBe(initialTheme);
+      expect(result.current.themeId).toBe('catppuccin-mocha');
 
       act(() => {
-        result.current.toggleTheme();
+        result.current.setThemeId('light');
       });
-
-      expect(result.current.theme).toBe(initialTheme);
+      expect(result.current.themeId).toBe('light');
     });
   });
 
-  describe('Persistence', () => {
-    it('saves theme to localStorage when changed', () => {
+  describe('Theme application', () => {
+    it('sets CSS custom properties on document element', () => {
       const wrapper = ({ children }: { children: ReactNode }) => (
         <ThemeProvider>{children}</ThemeProvider>
       );
 
-      const { result } = renderHook(() => useTheme(), { wrapper });
+      renderHook(() => useTheme(), { wrapper });
 
-      act(() => {
-        result.current.toggleTheme();
-      });
-
-      expect(localStorage.setItem).toHaveBeenCalledWith('giki-theme', result.current.theme);
+      expect(document.documentElement.style.setProperty).toHaveBeenCalledWith(
+        '--bg-primary',
+        expect.any(String)
+      );
+      expect(document.documentElement.style.setProperty).toHaveBeenCalledWith(
+        '--text-primary',
+        expect.any(String)
+      );
     });
 
-    it('sets data-theme attribute on html element when theme changes', () => {
+    it('sets data-theme attribute to theme type', () => {
       const wrapper = ({ children }: { children: ReactNode }) => (
         <ThemeProvider>{children}</ThemeProvider>
       );
 
       const { result } = renderHook(() => useTheme(), { wrapper });
-
-      act(() => {
-        result.current.toggleTheme();
-      });
 
       expect(document.documentElement.setAttribute).toHaveBeenCalledWith(
         'data-theme',
-        result.current.theme
+        result.current.theme.type
       );
+    });
+
+    it('sets data-highlight-theme attribute', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ThemeProvider>{children}</ThemeProvider>
+      );
+
+      const { result } = renderHook(() => useTheme(), { wrapper });
+
+      expect(document.documentElement.setAttribute).toHaveBeenCalledWith(
+        'data-highlight-theme',
+        result.current.theme.highlightTheme
+      );
+    });
+
+    it('saves theme ID to localStorage', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ThemeProvider>{children}</ThemeProvider>
+      );
+
+      const { result } = renderHook(() => useTheme(), { wrapper });
+
+      expect(localStorage.setItem).toHaveBeenCalledWith('giki-theme', result.current.themeId);
+    });
+  });
+
+  describe('availableThemes', () => {
+    it('includes all 9 built-in themes', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ThemeProvider>{children}</ThemeProvider>
+      );
+
+      const { result } = renderHook(() => useTheme(), { wrapper });
+
+      expect(result.current.availableThemes.length).toBe(9);
+      const ids = result.current.availableThemes.map((t) => t.id);
+      expect(ids).toContain('light');
+      expect(ids).toContain('dark');
+      expect(ids).toContain('dracula');
+      expect(ids).toContain('catppuccin-mocha');
     });
   });
 });
