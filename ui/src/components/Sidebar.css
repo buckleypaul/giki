@@ -3,7 +3,15 @@
   background-color: var(--bg-primary, #fff);
   border-right: 1px solid var(--border-color, #ddd);
   overflow-y: auto;
-  transition: transform 0.3s ease, width 0.3s ease;
+  transition: margin-left 0.3s ease;
+}
+
+.sidebar-closed {
+  margin-left: -280px;
+}
+
+.sidebar-open {
+  margin-left: 0;
 }
 
 .sidebar-content {
@@ -61,14 +69,18 @@
     bottom: 0;
     z-index: 100;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    margin-left: 0;
+    transition: transform 0.3s ease;
   }
 
   .sidebar-closed {
     transform: translateX(-100%);
+    margin-left: 0;
   }
 
   .sidebar-open {
     transform: translateX(0);
+    margin-left: 0;
   }
 }
 
