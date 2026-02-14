@@ -20,7 +20,7 @@ export default function PendingChanges({ isOpen, onClose }: PendingChangesProps)
     created: changes.filter(c => c.type === 'create'),
     modified: changes.filter(c => c.type === 'modify'),
     deleted: changes.filter(c => c.type === 'delete'),
-    moved: changes.filter(c => c.type === 'move'),
+    moved: changes.filter(c => c.type === 'move' || c.type === 'move-folder'),
   };
 
   const handleDiscard = (path: string) => {
@@ -144,7 +144,7 @@ interface ChangeItemProps {
 
 function ChangeItem({ change, onDiscard }: ChangeItemProps) {
   const getDiffInfo = () => {
-    if (change.type === 'move') {
+    if (change.type === 'move' || change.type === 'move-folder') {
       return (
         <div className="change-diff">
           <span className="change-path-old">{change.oldPath}</span>

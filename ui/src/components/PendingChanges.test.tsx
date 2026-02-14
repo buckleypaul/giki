@@ -257,4 +257,24 @@ describe('PendingChanges', () => {
     const commitButton = screen.getByRole('button', { name: /Commit\.\.\./i });
     expect(commitButton).toBeDisabled();
   });
+
+  it('shows move-folder changes in moved group', () => {
+    const changes: PendingChange[] = [
+      { type: 'move-folder', path: 'docs/get-started', oldPath: 'docs/getting-started' },
+    ];
+
+    renderWithProviders(
+      <PendingChanges isOpen={true} onClose={vi.fn()} />,
+      changes
+    );
+
+    // Should be grouped under "Moved"
+    const movedBadge = screen.getByText('Moved');
+    expect(movedBadge).toBeInTheDocument();
+
+    // Should show old → new paths
+    expect(screen.getByText('docs/getting-started')).toBeInTheDocument();
+    expect(screen.getByText('→')).toBeInTheDocument();
+    expect(screen.getByText('docs/get-started')).toBeInTheDocument();
+  });
 });

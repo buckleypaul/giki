@@ -142,10 +142,11 @@ export default function FileTree({ branch, onDelete, onRename }: FileTreeProps) 
       pendingChanges.filter((c) => c.type === 'delete').map((c) => c.path)
     );
     const movedPaths = new Set(
-      pendingChanges.filter((c) => c.type === 'move' && c.oldPath).map((c) => c.oldPath!)
+      pendingChanges.filter((c) => (c.type === 'move' || c.type === 'move-folder') && c.oldPath).map((c) => c.oldPath!)
     );
     const createdChanges = pendingChanges.filter((c) => c.type === 'create');
     const moveChanges = pendingChanges.filter((c) => c.type === 'move');
+    const moveFolderChanges = pendingChanges.filter((c) => c.type === 'move-folder');
 
     // Filter out deleted files and files that have been moved (from old location)
     let mergedNodes = nodes.filter((node) => !deletedPaths.has(node.path) && !movedPaths.has(node.path));
@@ -185,6 +186,35 @@ export default function FileTree({ branch, onDelete, onRename }: FileTreeProps) 
           path: change.path,
           isDir: false,
         });
+      }
+    }
+
+    // Handle moved folders
+    for (const change of moveFolderChanges) {
+      if (!change.oldPath) continue;
+
+      // Find the original folder node
+      const originalFolder = nodes.find((n) => n.path === change.oldPath);
+      if (originalFolder) {
+        // Create a new folder node with the updated path
+        const pathParts = change.path.split('/');
+        const folderName = pathParts[pathParts.length - 1];
+
+        // Helper function to update all descendant paths
+        const updateNodePaths = (node: TreeNode, oldPrefix: string, newPrefix: string): TreeNode => {
+          const updatedPath = node.path.replace(oldPrefix, newPrefix);
+          return {
+            ...node,
+            path: updatedPath,
+            children: node.children?.map((child) => updateNodePaths(child, oldPrefix, newPrefix)),
+          };
+        };
+
+        const updatedFolder = updateNodePaths(originalFolder, change.oldPath, change.path);
+        updatedFolder.name = folderName;
+
+        // Add the renamed folder to the tree
+        mergedNodes.push(updatedFolder);
       }
     }
 
