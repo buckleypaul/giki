@@ -12,14 +12,16 @@ interface FileViewerProps {
   filePath: string;
   branch?: string;
   pendingContent?: string | null;
+  isEditing?: boolean;
+  onCancelEdit?: () => void;
+  onCanEditChange?: (canEdit: boolean) => void;
 }
 
-export function FileViewer({ filePath, branch, pendingContent }: FileViewerProps) {
+export function FileViewer({ filePath, branch, pendingContent, isEditing = false, onCancelEdit, onCanEditChange }: FileViewerProps) {
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fileType, setFileType] = useState<FileType>('unknown');
-  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     async function loadFile() {
@@ -74,6 +76,13 @@ export function FileViewer({ filePath, branch, pendingContent }: FileViewerProps
     loadFile();
   }, [filePath, branch, pendingContent]);
 
+  // Notify parent when edit capability changes (only markdown files can be edited)
+  useEffect(() => {
+    if (onCanEditChange) {
+      onCanEditChange(fileType === 'markdown' && !loading && !error);
+    }
+  }, [fileType, loading, error, onCanEditChange]);
+
   if (loading) {
     return (
       <div className="file-viewer-state">
@@ -110,7 +119,7 @@ export function FileViewer({ filePath, branch, pendingContent }: FileViewerProps
       <Editor
         filePath={filePath}
         initialContent={content}
-        onCancel={() => setIsEditing(false)}
+        onCancel={onCancelEdit || (() => {})}
       />
     );
   }
@@ -121,7 +130,6 @@ export function FileViewer({ filePath, branch, pendingContent }: FileViewerProps
         <MarkdownView
           content={content}
           basePath={basePath}
-          onEdit={() => setIsEditing(true)}
         />
       );
 

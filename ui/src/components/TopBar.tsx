@@ -8,9 +8,10 @@ import './TopBar.css';
 interface TopBarProps {
   onToggleSidebar: () => void;
   onOpenPendingChanges?: () => void;
+  onEditFile?: () => void;
 }
 
-export default function TopBar({ onToggleSidebar, onOpenPendingChanges }: TopBarProps) {
+export default function TopBar({ onToggleSidebar, onOpenPendingChanges, onEditFile }: TopBarProps) {
   const [status, setStatus] = useState<RepoStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { getChanges } = usePendingChanges();
@@ -53,6 +54,11 @@ export default function TopBar({ onToggleSidebar, onOpenPendingChanges }: TopBar
           <span className="topbar-loading">Loading...</span>
         )}
       </div>
+      {onEditFile && (
+        <button className="topbar-edit-button" onClick={onEditFile}>
+          Edit File
+        </button>
+      )}
     </header>
   );
 }

@@ -11,6 +11,8 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showPendingChanges, setShowPendingChanges] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [isEditingFile, setIsEditingFile] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
   const { selectedBranch } = useBranch();
 
   // Close sidebar by default on narrow viewports
@@ -48,10 +50,16 @@ export default function Layout() {
       <TopBar
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         onOpenPendingChanges={() => setShowPendingChanges(true)}
+        onEditFile={canEdit ? () => setIsEditingFile(true) : undefined}
       />
       <div className="layout-main">
         <Sidebar isOpen={sidebarOpen} branch={selectedBranch ?? undefined} />
-        <ContentArea branch={selectedBranch ?? undefined} />
+        <ContentArea
+          branch={selectedBranch ?? undefined}
+          isEditingFile={isEditingFile}
+          onCancelEdit={() => setIsEditingFile(false)}
+          onCanEditChange={setCanEdit}
+        />
       </div>
       <PendingChanges
         isOpen={showPendingChanges}

@@ -83,3 +83,19 @@
   color: var(--text-secondary, #666);
 }
 
+.topbar-edit-button {
+  background-color: #3b82f6;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.topbar-edit-button:hover {
+  background-color: #2563eb;
+}
+

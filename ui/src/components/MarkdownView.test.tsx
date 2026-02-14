@@ -1,6 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { userEvent } from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { MarkdownView } from './MarkdownView';
 
@@ -294,27 +293,4 @@ const code = true;
     });
   });
 
-  describe('Edit Button', () => {
-    it('does not render Edit button when onEdit is not provided', () => {
-      renderWithRouter(<MarkdownView content="# Test" />);
-      expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument();
-    });
-
-    it('renders Edit button when onEdit callback is provided', () => {
-      const onEdit = vi.fn();
-      renderWithRouter(<MarkdownView content="# Test" onEdit={onEdit} />);
-      expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument();
-    });
-
-    it('calls onEdit callback when Edit button is clicked', async () => {
-      const user = userEvent.setup();
-      const onEdit = vi.fn();
-      renderWithRouter(<MarkdownView content="# Test" onEdit={onEdit} />);
-
-      const editButton = screen.getByRole('button', { name: /edit/i });
-      await user.click(editButton);
-
-      expect(onEdit).toHaveBeenCalledTimes(1);
-    });
-  });
 });

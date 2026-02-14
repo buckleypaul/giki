@@ -10,9 +10,12 @@ import './ContentArea.css';
 
 interface ContentAreaProps {
   branch?: string;
+  isEditingFile?: boolean;
+  onCancelEdit?: () => void;
+  onCanEditChange?: (canEdit: boolean) => void;
 }
 
-export default function ContentArea({ branch }: ContentAreaProps) {
+export default function ContentArea({ branch, isEditingFile, onCancelEdit, onCanEditChange }: ContentAreaProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { getModifiedContent } = usePendingChanges();
@@ -151,7 +154,14 @@ export default function ContentArea({ branch }: ContentAreaProps) {
 
   return (
     <main className="content-area">
-      <FileViewer filePath={filePath} branch={branch} pendingContent={pendingContent} />
+      <FileViewer
+        filePath={filePath}
+        branch={branch}
+        pendingContent={pendingContent}
+        isEditing={isEditingFile}
+        onCancelEdit={onCancelEdit}
+        onCanEditChange={onCanEditChange}
+      />
     </main>
   );
 }

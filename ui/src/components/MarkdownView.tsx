@@ -9,7 +9,6 @@ import './MarkdownView.css';
 interface MarkdownViewProps {
   content: string;
   basePath?: string;
-  onEdit?: () => void;
 }
 
 /**
@@ -67,7 +66,7 @@ function resolveRelativePath(href: string, basePath?: string): string {
  * MarkdownView component that renders markdown with GFM support,
  * syntax highlighting, and custom handling for links and images.
  */
-export function MarkdownView({ content, basePath, onEdit }: MarkdownViewProps) {
+export function MarkdownView({ content, basePath }: MarkdownViewProps) {
   const components: Components = {
     // Custom link component: relative links use React Router, external open in new tab
     a: ({ node, href, children, ...props }) => {
@@ -126,23 +125,14 @@ export function MarkdownView({ content, basePath, onEdit }: MarkdownViewProps) {
   };
 
   return (
-    <div className="markdown-view-wrapper">
-      {onEdit && (
-        <div className="markdown-view-header">
-          <button onClick={onEdit} className="markdown-edit-button">
-            Edit
-          </button>
-        </div>
-      )}
-      <div className="markdown-view">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeHighlight, rehypeSlug]}
-          components={components}
-        >
-          {content}
-        </ReactMarkdown>
-      </div>
+    <div className="markdown-view">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeHighlight, rehypeSlug]}
+        components={components}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 }
