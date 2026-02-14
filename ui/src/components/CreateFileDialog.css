@@ -12,7 +12,7 @@
 }
 
 .dialog-content {
-  background: var(--bg-primary);
+  background: var(--bg-primary, #ffffff);
   border-radius: 8px;
   padding: 24px;
   min-width: 400px;
@@ -23,7 +23,7 @@
 .dialog-title {
   margin: 0 0 20px 0;
   font-size: 1.25rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #1f2937);
 }
 
 .dialog-field {
@@ -42,10 +42,10 @@
   width: 100%;
   padding: 8px 12px;
   font-size: 0.875rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 4px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--text-primary, #1f2937);
   font-family: inherit;
 }
 
@@ -86,12 +86,12 @@
 }
 
 .dialog-button-secondary {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
+  background-color: var(--bg-tertiary, #f3f4f6);
+  color: var(--text-primary, #1f2937);
 }
 
 .dialog-button-secondary:hover {
-  background-color: var(--bg-hover);
+  background-color: var(--bg-hover, #e5e7eb);
 }
 
 .dialog-message {
@@ -144,10 +144,10 @@
   width: 100%;
   padding: 8px 12px;
   font-size: 0.875rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 4px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--text-primary, #1f2937);
   font-family: inherit;
   resize: vertical;
   min-height: 80px;
@@ -171,9 +171,9 @@
 .commit-summary {
   margin-bottom: 20px;
   padding: 12px;
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-secondary, #f9fafb);
   border-radius: 6px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color, #e5e7eb);
 }
 
 .commit-summary-title {
@@ -221,11 +221,50 @@
 
 @media (prefers-color-scheme: dark) {
   .dialog-content {
+    background: var(--bg-primary, #1f2937);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   }
 
+  .dialog-title {
+    color: var(--text-primary, #f9fafb);
+  }
+
+  .dialog-field label {
+    color: var(--text-primary, #f9fafb);
+  }
+
+  .dialog-label {
+    color: var(--text-primary, #f9fafb);
+  }
+
+  .dialog-input {
+    background: var(--bg-secondary, #374151);
+    color: var(--text-primary, #f9fafb);
+    border-color: var(--border-color, #4b5563);
+  }
+
+  .dialog-textarea {
+    background: var(--bg-secondary, #374151);
+    color: var(--text-primary, #f9fafb);
+    border-color: var(--border-color, #4b5563);
+  }
+
+  .dialog-button-secondary {
+    background-color: var(--bg-tertiary, #374151);
+    color: var(--text-primary, #f9fafb);
+  }
+
+  .dialog-button-secondary:hover {
+    background-color: var(--bg-hover, #4b5563);
+  }
+
   .commit-summary {
-    background-color: var(--bg-tertiary);
+    background-color: var(--bg-tertiary, #374151);
+    border-color: var(--border-color, #4b5563);
+  }
+
+  .commit-summary-title {
+    color: var(--text-primary, #f9fafb);
   }
 
   .commit-summary-created {
