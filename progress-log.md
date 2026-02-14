@@ -1647,3 +1647,108 @@ giki version dev
 
 ---
 
+
+## Step 20: Write/delete/move API endpoints + commit endpoint
+**Date:** 2026-02-13
+**Phase:** Phase 4 - Editing & File Management
+
+**Summary:**
+- Added four new methods to `LocalProvider` in `internal/git/local.go`:
+  - `WriteFile(path, content)` — writes file to disk, creates parent directories
+  - `DeleteFile(path)` — removes file with validation (rejects directories)
+  - `MoveFile(oldPath, newPath)` — renames/moves files, supports nested paths
+  - `Commit(message)` — stages all changes and creates git commit, returns commit hash
+- Updated `GitProvider` interface in `internal/git/provider.go` with new methods
+- Created `internal/server/handler_write.go` with three POST endpoints:
+  - `POST /api/write` — writes file (JSON: `{path, content}`)
+  - `POST /api/delete` — deletes file (JSON: `{path}`)
+  - `POST /api/move` — moves/renames file (JSON: `{oldPath, newPath}`)
+- Created `internal/server/handler_commit.go` with:
+  - `POST /api/commit` — creates commit (JSON: `{message}`), returns `{hash}`
+- Registered all four handlers in `internal/server/server.go`
+- All methods validate paths to prevent traversal attacks (no ".." allowed)
+- Empty paths and messages rejected with 400 Bad Request
+- Created comprehensive test suites:
+  - 9 new unit tests in `internal/git/local_test.go`
+  - 6 integration tests in `internal/server/handler_write_test.go`
+  - 4 integration tests in `internal/server/handler_commit_test.go`
+- Added `createTestRepoWithCommit()` helper function to all test files
+
+**Test Results:**
+- ✓ All 58 Go tests passed (19 new + 39 existing)
+- ✓ Unit tests verify all four LocalProvider methods work correctly
+- ✓ Unit tests verify path traversal attacks blocked
+- ✓ Unit tests verify empty message rejected for commits
+- ✓ Integration tests verify all four API endpoints
+- ✓ Integration test verifies full write → commit → status flow
+- ✓ After commit, repository status shows `isDirty: false`
+- ✓ Commit hash returned in response and verifiable in git log
+- ✓ `go vet ./...` passed with no issues
+- ✓ `make build` succeeded (binary: 13M)
+
+**Unit Test Coverage (LocalProvider):**
+
+1. **WriteFile (3 tests):**
+   - Creates new file with content
+   - Creates nested directories automatically
+   - Blocks path traversal attacks
+
+2. **DeleteFile (2 tests):**
+   - Deletes existing file
+   - Returns error for nonexistent file
+
+3. **MoveFile (2 tests):**
+   - Renames file in same directory
+   - Moves file to nested path with directory creation
+
+4. **Commit (2 tests):**
+   - Creates commit with all changes staged
+   - Rejects empty commit message
+   - Returns commit hash
+   - Repository clean after commit
+
+**Integration Test Coverage (API Handlers):**
+
+1. **POST /api/write (2 tests):**
+   - Writes new file to disk
+   - Rejects empty path with 400
+
+2. **POST /api/delete (2 tests):**
+   - Deletes existing file
+   - Returns 500 for nonexistent file
+
+3. **POST /api/move (2 tests):**
+   - Moves file from old to new path
+   - Rejects empty paths with 400
+
+4. **POST /api/commit (4 tests):**
+   - Creates commit with message and returns hash
+   - Repository clean after commit (verified via /api/status)
+   - Rejects empty message with 400
+   - Full integration flow: write → commit → verify status clean
+
+**Acceptance Criteria (Plan Step 20):**
+- ✅ WriteFile writes to disk and is visible via `/api/tree`
+- ✅ DeleteFile removes file from disk
+- ✅ MoveFile renames file (works with nested paths)
+- ✅ Commit creates git commit with correct message and staged files
+- ✅ After commit, `/api/status` shows `isDirty: false`
+- ✅ All operations work on current branch (HEAD) only
+- ✅ Commit hash returned in response
+- ✅ Path validation prevents traversal attacks
+
+**Architecture Notes:**
+- Write operations modify working tree only (no git object manipulation)
+- Commit uses `worktree.AddWithOptions(&git.AddOptions{All: true})` to stage all changes
+- Hardcoded "Giki User" signature used for commits (Step 25 will add config)
+- All endpoints return JSON with consistent error format: `{"error": "message"}`
+- Success responses use `{"success": true}` or return data (commit hash)
+- File operations work on filesystem via `os` package
+- Commit operations use go-git `Worktree.Commit()` API
+- No branch switching — all operations assume current/HEAD branch
+- Backend fully ready for Step 21 frontend integration (CommitDialog)
+
+**Next Step:** Step 21 - Review changes panel + commit dialog (frontend)
+
+---
+
