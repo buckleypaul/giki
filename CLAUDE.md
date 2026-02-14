@@ -151,6 +151,79 @@ This project follows a granular step-by-step implementation plan (`plan.md`). Ea
 - New API endpoints need integration tests verifying request/response
 - New React components need tests for rendering, user interaction, and edge cases
 
+## Release Process
+
+Giki uses [GoReleaser](https://goreleaser.com/) with GitHub Actions to automate releases. When a version tag is pushed, the workflow automatically builds binaries, creates a GitHub release, and updates the Homebrew tap.
+
+### Creating a New Release
+
+**Prerequisites:**
+1. All tests must pass (`make test` and `cd ui && npm test`)
+2. Working tree must be clean (no uncommitted changes)
+3. Code must be pushed to `main` branch
+
+**Steps:**
+
+```bash
+# 1. Verify clean state
+git status
+make test
+cd ui && npm test && cd ..
+
+# 2. Create an annotated tag (use semantic versioning: vMAJOR.MINOR.PATCH)
+git tag -a v0.X.Y -m "Release v0.X.Y
+
+- Feature or fix summary line 1
+- Feature or fix summary line 2
+- Additional notable changes"
+
+# 3. Push the tag to trigger the release workflow
+git push origin v0.X.Y
+
+# 4. Monitor the workflow progress
+gh run list --workflow=release.yml --limit 1
+gh run watch  # Watch the current run
+```
+
+**What Happens Automatically:**
+
+The `.github/workflows/release.yml` workflow triggers on tag push and:
+
+1. **Builds Frontend**: Runs `make frontend-build` to compile React app to `ui/dist/`
+2. **Compiles Binaries**: Creates executables for:
+   - Linux (amd64, arm64)
+   - macOS (amd64, arm64)
+   - Windows (amd64)
+3. **Creates Archives**: Bundles binaries with LICENSE and README as `.tar.gz` (or `.zip` for Windows)
+4. **Generates Checksums**: Creates `checksums.txt` for all artifacts
+5. **Creates GitHub Release**: Publishes release with changelog and downloadable assets
+6. **Updates Homebrew Tap**: Pushes updated formula to `buckleypaul/homebrew-tap`
+
+**Configuration Files:**
+- `.goreleaser.yaml`: GoReleaser configuration (build targets, archive format, Homebrew tap settings)
+- `.github/workflows/release.yml`: GitHub Actions workflow triggered by tags
+
+**Verifying the Release:**
+
+```bash
+# Check GitHub release page
+open https://github.com/buckleypaul/giki/releases/tag/v0.X.Y
+
+# Test Homebrew installation (requires waiting ~5-10 minutes for Homebrew to sync)
+brew uninstall giki  # If previously installed
+brew install buckleypaul/tap/giki
+giki version
+```
+
+**Version Injection:**
+
+GoReleaser injects version metadata into the binary at build time via ldflags:
+- `Version`: Git tag (e.g., "v0.3.0")
+- `Commit`: Git commit SHA
+- `Date`: Build timestamp
+
+These are displayed via `giki version` command (defined in `internal/cli/version.go`).
+
 ## Git Workflow
 
 - Commit after each completed step with format: `"Step N: Brief description"`
