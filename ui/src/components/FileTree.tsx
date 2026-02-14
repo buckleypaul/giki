@@ -42,7 +42,7 @@ function TreeItem({ node, depth, onFileClick, onDelete, onRename, isDeleted, isM
 
   const handleRename = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onRename && !isDirectory) {
+    if (onRename) {
       onRename(node.path);
     }
   };
@@ -63,25 +63,25 @@ function TreeItem({ node, depth, onFileClick, onDelete, onRename, isDeleted, isM
         )}
         {!isDirectory && <span className="tree-item-icon">📄</span>}
         <span className="tree-item-name">{node.name}</span>
-        {!isDirectory && !isDeleted && !isMoved && (
+        {!isDeleted && !isMoved && (
           <div className="tree-item-actions">
             {onRename && (
               <button
                 className="tree-item-rename"
                 onClick={handleRename}
-                title="Rename file"
+                title={`Rename ${isDirectory ? 'folder' : 'file'}`}
                 aria-label={`Rename ${node.name}`}
               >
                 ✎
               </button>
             )}
-            {onDelete && (
+            {onDelete && !isDirectory && (
               <button
                 className="tree-item-delete"
                 onClick={handleDelete}
                 title="Delete file"
                 aria-label={`Delete ${node.name}`}
-              >
+                >
                 ×
               </button>
             )}

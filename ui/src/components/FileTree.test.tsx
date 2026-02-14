@@ -228,4 +228,18 @@ describe('FileTree', () => {
     // Should have been called twice (once for each branch)
     expect(apiClient.fetchTree).toHaveBeenCalledTimes(2);
   });
+
+  it('shows rename button for folders', async () => {
+    const onRename = vi.fn();
+
+    renderWithProviders(<FileTree onRename={onRename} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('docs')).toBeInTheDocument();
+    });
+
+    // Rename button should be present for folder
+    const renameButton = screen.getByLabelText('Rename docs');
+    expect(renameButton).toBeInTheDocument();
+  });
 });
