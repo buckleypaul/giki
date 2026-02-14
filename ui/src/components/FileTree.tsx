@@ -189,17 +189,79 @@ export default function FileTree({ branch, onDelete, onRename }: FileTreeProps) 
       }
     }
 
-    // Handle moved folders
+    // Handle moved folders - recursively remove and re-insert at new location
+    const removeAndUpdateFolder = (nodeList: TreeNode[], change: typeof moveFolderChanges[0]): TreeNode[] => {
+      return nodeList.map((node) => {
+        // If this node is the folder being moved, skip it (will be re-inserted)
+        if (node.path === change.oldPath) {
+          return null; // Mark for removal
+        }
+
+        // If this node has children, recursively process them
+        if (node.children) {
+          const updatedChildren = removeAndUpdateFolder(node.children, change).filter((n): n is TreeNode => n !== null);
+          return { ...node, children: updatedChildren };
+        }
+
+        return node;
+      }).filter((n): n is TreeNode => n !== null);
+    };
+
+    const insertFolderAtNewLocation = (
+      nodeList: TreeNode[],
+      change: typeof moveFolderChanges[0],
+      updatedFolder: TreeNode
+    ): TreeNode[] => {
+      const newPathParts = change.path.split('/');
+
+      // If new path is at root level (no slashes or just a name)
+      if (newPathParts.length === 1) {
+        return [...nodeList, updatedFolder];
+      }
+
+      // Find parent path (everything except last part)
+      const parentPath = newPathParts.slice(0, -1).join('/');
+
+      return nodeList.map((node) => {
+        if (node.path === parentPath && node.children) {
+          // This is the parent folder - add the renamed folder to its children
+          return {
+            ...node,
+            children: [...node.children, updatedFolder],
+          };
+        }
+
+        if (node.children) {
+          // Recursively search in children
+          return {
+            ...node,
+            children: insertFolderAtNewLocation(node.children, change, updatedFolder),
+          };
+        }
+
+        return node;
+      });
+    };
+
     for (const change of moveFolderChanges) {
       if (!change.oldPath) continue;
 
-      // Find the original folder node
-      const originalFolder = nodes.find((n) => n.path === change.oldPath);
-      if (originalFolder) {
-        // Create a new folder node with the updated path
-        const pathParts = change.path.split('/');
-        const folderName = pathParts[pathParts.length - 1];
+      // Find the original folder node (search recursively)
+      const findNodeByPath = (nodeList: TreeNode[], targetPath: string): TreeNode | null => {
+        for (const node of nodeList) {
+          if (node.path === targetPath) {
+            return node;
+          }
+          if (node.children) {
+            const found = findNodeByPath(node.children, targetPath);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
 
+      const originalFolder = findNodeByPath(mergedNodes, change.oldPath);
+      if (originalFolder) {
         // Helper function to update all descendant paths
         const updateNodePaths = (node: TreeNode, oldPrefix: string, newPrefix: string): TreeNode => {
           const updatedPath = node.path.replace(oldPrefix, newPrefix);
@@ -210,11 +272,17 @@ export default function FileTree({ branch, onDelete, onRename }: FileTreeProps) 
           };
         };
 
+        // Create updated folder with new paths
+        const pathParts = change.path.split('/');
+        const folderName = pathParts[pathParts.length - 1];
         const updatedFolder = updateNodePaths(originalFolder, change.oldPath, change.path);
         updatedFolder.name = folderName;
 
-        // Add the renamed folder to the tree
-        mergedNodes.push(updatedFolder);
+        // Remove from old location
+        mergedNodes = removeAndUpdateFolder(mergedNodes, change);
+
+        // Insert at new location
+        mergedNodes = insertFolderAtNewLocation(mergedNodes, change, updatedFolder);
       }
     }
 
