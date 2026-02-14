@@ -10,31 +10,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-// createTestRepoWithCommit creates a git repository with an initial commit so HEAD exists.
-func createTestRepoWithCommit(t *testing.T, tempDir string) *git.Repository {
-	repo, err := git.PlainInit(tempDir, false)
-	if err != nil {
-		t.Fatalf("failed to init repo: %v", err)
-	}
-	w, err := repo.Worktree()
-	if err != nil {
-		t.Fatalf("failed to get worktree: %v", err)
-	}
-	dummyFile := filepath.Join(tempDir, ".gitkeep")
-	if err := os.WriteFile(dummyFile, []byte(""), 0644); err != nil {
-		t.Fatalf("failed to write dummy file: %v", err)
-	}
-	if _, err := w.Add(".gitkeep"); err != nil {
-		t.Fatalf("failed to add file: %v", err)
-	}
-	if _, err := w.Commit("Initial commit", &git.CommitOptions{}); err != nil {
-		t.Fatalf("failed to commit: %v", err)
-	}
-	return repo
-}
-
-//
-// createTestRepoWithCommit creates a git repository with an initial commit so HEAD exists
 // TestNewLocalProvider_GikiRepoItself tests opening the giki repository itself.
 func TestNewLocalProvider_GikiRepoItself(t *testing.T) {
 	// Get the root of the giki repository (two levels up from internal/git)
@@ -1403,7 +1378,10 @@ func TestFileContent_HEADBranchWithUncommittedChanges(t *testing.T) {
 func TestWriteFile_CreateNewFile(t *testing.T) {
 	// Create a temporary git repository
 	tempDir := t.TempDir()
-	createTestRepoWithCommit(t, tempDir)
+	_, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
 
 	// Create provider
 	provider, err := NewLocalProvider(tempDir, "")
@@ -1434,7 +1412,10 @@ func TestWriteFile_CreateNewFile(t *testing.T) {
 func TestWriteFile_CreateNestedFile(t *testing.T) {
 	// Create a temporary git repository
 	tempDir := t.TempDir()
-	createTestRepoWithCommit(t, tempDir)
+	_, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
 
 	// Create provider
 	provider, err := NewLocalProvider(tempDir, "")
@@ -1465,7 +1446,10 @@ func TestWriteFile_CreateNestedFile(t *testing.T) {
 func TestWriteFile_PathTraversalBlocked(t *testing.T) {
 	// Create a temporary git repository
 	tempDir := t.TempDir()
-	createTestRepoWithCommit(t, tempDir)
+	_, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
 
 	// Create provider
 	provider, err := NewLocalProvider(tempDir, "")
@@ -1488,7 +1472,10 @@ func TestWriteFile_PathTraversalBlocked(t *testing.T) {
 func TestDeleteFile_RemoveFile(t *testing.T) {
 	// Create a temporary git repository
 	tempDir := t.TempDir()
-	createTestRepoWithCommit(t, tempDir)
+	_, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
 
 	// Create a test file
 	testFile := filepath.Join(tempDir, "test.md")
@@ -1518,7 +1505,10 @@ func TestDeleteFile_RemoveFile(t *testing.T) {
 func TestDeleteFile_NonexistentFile(t *testing.T) {
 	// Create a temporary git repository
 	tempDir := t.TempDir()
-	createTestRepoWithCommit(t, tempDir)
+	_, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
 
 	// Create provider
 	provider, err := NewLocalProvider(tempDir, "")
@@ -1541,7 +1531,10 @@ func TestDeleteFile_NonexistentFile(t *testing.T) {
 func TestMoveFile_RenameFile(t *testing.T) {
 	// Create a temporary git repository
 	tempDir := t.TempDir()
-	createTestRepoWithCommit(t, tempDir)
+	_, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
 
 	// Create a test file
 	oldFile := filepath.Join(tempDir, "old.md")
@@ -1583,7 +1576,10 @@ func TestMoveFile_RenameFile(t *testing.T) {
 func TestMoveFile_MoveToNestedPath(t *testing.T) {
 	// Create a temporary git repository
 	tempDir := t.TempDir()
-	createTestRepoWithCommit(t, tempDir)
+	_, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
 
 	// Create a test file
 	oldFile := filepath.Join(tempDir, "file.md")
@@ -1625,7 +1621,10 @@ func TestMoveFile_MoveToNestedPath(t *testing.T) {
 func TestCommit_CreateCommit(t *testing.T) {
 	// Create a temporary git repository
 	tempDir := t.TempDir()
-	repo := createTestRepoWithCommit(t, tempDir)
+	repo, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
 
 	// Create provider
 	provider, err := NewLocalProvider(tempDir, "")
@@ -1677,7 +1676,10 @@ func TestCommit_CreateCommit(t *testing.T) {
 func TestCommit_EmptyMessage(t *testing.T) {
 	// Create a temporary git repository
 	tempDir := t.TempDir()
-	createTestRepoWithCommit(t, tempDir)
+	_, err := git.PlainInit(tempDir, false)
+	if err != nil {
+		t.Fatalf("failed to init test repo: %v", err)
+	}
 
 	// Create provider
 	provider, err := NewLocalProvider(tempDir, "")

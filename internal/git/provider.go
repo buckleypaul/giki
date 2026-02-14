@@ -18,6 +18,20 @@ type GitProvider interface {
 
 	// Status returns the current repository status (branch, dirty state, etc.).
 	Status() (*RepoStatus, error)
+
+	// WriteFile writes content to a file at the given path.
+	// Creates parent directories if they don't exist.
+	WriteFile(path string, content []byte) error
+
+	// DeleteFile removes a file at the given path.
+	DeleteFile(path string) error
+
+	// MoveFile moves/renames a file from oldPath to newPath.
+	MoveFile(oldPath, newPath string) error
+
+	// Commit creates a git commit with all staged and unstaged changes.
+	// Returns the commit hash on success.
+	Commit(message string) (string, error)
 }
 
 // TreeNode represents a file or directory in the repository tree.

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -494,4 +495,175 @@ func (p *LocalProvider) Status() (*RepoStatus, error) {
 		Branch:  p.branch,
 		IsDirty: isDirty,
 	}, nil
+}
+
+// WriteFile writes content to a file at the given path.
+// Creates parent directories if they don't exist.
+// Writes to the working tree only.
+func (p *LocalProvider) WriteFile(path string, content []byte) error {
+	// Normalize path: strip leading/trailing slashes, convert to forward slashes
+	path = strings.Trim(path, "/")
+	path = filepath.ToSlash(path)
+
+	// Validate path is not empty
+	if path == "" {
+		return fmt.Errorf("path cannot be empty")
+	}
+
+	// Security: validate path doesn't escape repository root
+	if strings.Contains(path, "..") {
+		return fmt.Errorf("invalid path: cannot contain '..'")
+	}
+
+	// Convert to OS-specific path separator
+	fullPath := filepath.Join(p.path, filepath.FromSlash(path))
+
+	// Create parent directories if they don't exist
+	dir := filepath.Dir(fullPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directories: %w", err)
+	}
+
+	// Write file content
+	if err := os.WriteFile(fullPath, content, 0644); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteFile removes a file at the given path.
+// Returns an error if the file doesn't exist or is a directory.
+func (p *LocalProvider) DeleteFile(path string) error {
+	// Normalize path: strip leading/trailing slashes, convert to forward slashes
+	path = strings.Trim(path, "/")
+	path = filepath.ToSlash(path)
+
+	// Validate path is not empty
+	if path == "" {
+		return fmt.Errorf("path cannot be empty")
+	}
+
+	// Security: validate path doesn't escape repository root
+	if strings.Contains(path, "..") {
+		return fmt.Errorf("invalid path: cannot contain '..'")
+	}
+
+	// Convert to OS-specific path separator
+	fullPath := filepath.Join(p.path, filepath.FromSlash(path))
+
+	// Check if file exists and is not a directory
+	info, err := os.Stat(fullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("file not found")
+		}
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+
+	if info.IsDir() {
+		return fmt.Errorf("path is a directory, not a file")
+	}
+
+	// Delete the file
+	if err := os.Remove(fullPath); err != nil {
+		return fmt.Errorf("failed to delete file: %w", err)
+	}
+
+	return nil
+}
+
+// MoveFile moves/renames a file from oldPath to newPath.
+// Creates parent directories for newPath if they don't exist.
+// Returns an error if oldPath doesn't exist or is a directory,
+// or if newPath already exists.
+func (p *LocalProvider) MoveFile(oldPath, newPath string) error {
+	// Normalize paths: strip leading/trailing slashes, convert to forward slashes
+	oldPath = strings.Trim(oldPath, "/")
+	oldPath = filepath.ToSlash(oldPath)
+	newPath = strings.Trim(newPath, "/")
+	newPath = filepath.ToSlash(newPath)
+
+	// Validate paths are not empty
+	if oldPath == "" || newPath == "" {
+		return fmt.Errorf("paths cannot be empty")
+	}
+
+	// Security: validate paths don't escape repository root
+	if strings.Contains(oldPath, "..") || strings.Contains(newPath, "..") {
+		return fmt.Errorf("invalid path: cannot contain '..'")
+	}
+
+	// Convert to OS-specific path separators
+	oldFullPath := filepath.Join(p.path, filepath.FromSlash(oldPath))
+	newFullPath := filepath.Join(p.path, filepath.FromSlash(newPath))
+
+	// Check if old file exists and is not a directory
+	info, err := os.Stat(oldFullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("source file not found")
+		}
+		return fmt.Errorf("failed to stat source file: %w", err)
+	}
+
+	if info.IsDir() {
+		return fmt.Errorf("source path is a directory, not a file")
+	}
+
+	// Check if new path already exists
+	if _, err := os.Stat(newFullPath); err == nil {
+		return fmt.Errorf("destination file already exists")
+	}
+
+	// Create parent directories for new path if they don't exist
+	dir := filepath.Dir(newFullPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directories: %w", err)
+	}
+
+	// Move/rename the file
+	if err := os.Rename(oldFullPath, newFullPath); err != nil {
+		return fmt.Errorf("failed to move file: %w", err)
+	}
+
+	return nil
+}
+
+// Commit creates a git commit with all staged and unstaged changes.
+// Returns the commit hash on success.
+// Requires a non-empty commit message.
+func (p *LocalProvider) Commit(message string) (string, error) {
+	// Validate message is not empty
+	message = strings.TrimSpace(message)
+	if message == "" {
+		return "", fmt.Errorf("commit message cannot be empty")
+	}
+
+	// Get worktree
+	worktree, err := p.repo.Worktree()
+	if err != nil {
+		return "", fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Stage all changes (git add .)
+	err = worktree.AddWithOptions(&git.AddOptions{All: true})
+	if err != nil {
+		return "", fmt.Errorf("failed to stage changes: %w", err)
+	}
+
+	// Create commit
+	// TODO: In Step 25, this signature will be customizable via config
+	hash, err := worktree.Commit(message, &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "Giki User",
+			Email: "user@giki.local",
+			When:  time.Now(),
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create commit: %w", err)
+	}
+
+	return hash.String(), nil
 }
