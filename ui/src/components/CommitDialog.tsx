@@ -86,7 +86,8 @@ export default function CommitDialog({ isOpen, onClose, changes, onSuccess }: Co
 
       console.log('Commit created:', result.hash);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to commit changes');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to commit changes: ${errorMessage}`);
       setIsCommitting(false);
     }
   };
