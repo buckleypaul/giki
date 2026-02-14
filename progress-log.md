@@ -2168,3 +2168,127 @@ All tests passing (100% pass rate)
 **Next Step:** Step 24 - Remote Repository Cloning (Clone-First for Remote URLs)
 
 ---
+
+## 2026-02-14 — Step 24: Remote Repository Cloning
+
+**Objective:** Enable cloning and serving remote git repositories with interactive prompts and pull support for existing clones (Plan Step 24, PRD 3.9).
+
+**Implementation:**
+
+*Backend Implementation:*
+
+**internal/git/clone.go** (new file, ~170 lines):
+- `GetClonePath(url string) (path, exists, error)` — Determines where a URL would be cloned and if it already exists
+- `CloneRemote(url, targetPath string) error` — Clones repository to specified path using go-git
+- `PullExisting(path string) error` — Pulls latest changes via go-git (handles already-up-to-date and no-upstream cases)
+- `parseGitURL(url string) (owner, repo, error)` — Parses various git URL formats to extract owner/repo:
+  - HTTPS: `https://github.com/owner/repo[.git]`
+  - HTTP: `http://github.com/owner/repo[.git]`
+  - SSH git@: `git@github.com:owner/repo[.git]`
+  - SSH protocol: `ssh://git@github.com/owner/repo.git`
+  - Handles nested paths (uses last two segments)
+  - Strips .git suffix when present
+- Clone destination: `~/.giki/repos/<owner>/<repo>/`
+- Clone progress output to stdout via go-git Progress option
+
+**internal/cli/root.go** (modified):
+- Added `bufio` import for interactive prompts
+- `handleRemoteURL(url string) (path, error)` — Interactive clone flow:
+  1. Check if repository already exists
+  2. If exists: prompt "Pull latest changes? [Y/n]"
+     - Yes: pull and continue (or warn on error)
+     - No: use existing repo
+  3. If new: prompt "Clone repository from <url>? [Y/n]"
+     - Yes: clone and continue
+     - No: exit gracefully with "clone cancelled by user"
+  4. Return path for serving
+- `promptYesNo(prompt, defaultYes bool) bool` — Interactive terminal prompt helper:
+  - Reads from stdin using bufio.Scanner
+  - Empty input (just Enter) uses default
+  - Accepts: y, yes, n, no (case-insensitive)
+  - On stdin error, returns default
+- Remote URL flow integrated into existing `run()` function
+- Descriptive errors for all failure cases (network, disk, auth)
+
+*Testing:*
+
+**internal/git/clone_test.go** (new file, ~250 lines):
+1. `TestParseGitURL` (15 test cases):
+   - HTTPS with/without .git suffix
+   - HTTP with/without .git suffix
+   - SSH git@ format with/without .git
+   - SSH protocol format
+   - GitLab HTTPS (different domain)
+   - Nested paths (https://github.com/a/b/owner/repo.git → owner/repo)
+   - URL with trailing whitespace (trimmed)
+   - Invalid: no owner/repo, only owner, SSH without colon, unsupported protocol, empty string
+2. `TestGetClonePath_PathCreation` — Verifies correct path construction
+3. `TestGetClonePath_DetectsExisting` — Verifies .git directory detection logic
+4. `TestPullExisting` — Tests pull on repo with no remote (expected error)
+5. `TestPullExisting_InvalidPath` — Tests pull on nonexistent path (expected error)
+
+All tests use standard library testing patterns:
+- `t.TempDir()` for temporary directories
+- `git.PlainInit()` for test repositories
+- Descriptive error messages with context
+
+**Testing:**
+
+*Go Tests:*
+```
+go test ./...
+?       github.com/buckleypaul/giki/cmd/giki       [no test files]
+ok      github.com/buckleypaul/giki/internal/cli   0.797s
+ok      github.com/buckleypaul/giki/internal/git   0.695s  (5 new tests, all passing)
+ok      github.com/buckleypaul/giki/internal/server 0.463s
+```
+
+*Frontend Tests:*
+No changes to frontend (this is backend-only feature)
+All existing frontend tests continue to pass
+
+*Build Verification:*
+```
+make build
+✓ Frontend built successfully (ui/dist/)
+✓ Go binary compiled successfully (giki)
+✓ All assets embedded correctly
+```
+
+**Test Results:**
+```
+Go tests: 5 new tests in clone_test.go, all passing
+Total: All tests passing (100% pass rate)
+Build: ✓ Successful (single binary with embedded frontend)
+```
+
+**Acceptance Criteria (Plan Step 24 / PRD 3.9):**
+- ✅ Remote URL prompts to clone ("Clone repository from <url>? [Y/n]")
+- ✅ User can decline by pressing 'n' (exits gracefully with message)
+- ✅ Existing clone prompts for pull ("Pull latest changes? [Y/n]")
+- ✅ User can decline pull and use existing repo
+- ✅ Network/disk/auth failures print descriptive errors
+- ✅ Clone destination: ~/.giki/repos/<owner>/<repo>/
+- ✅ Supports HTTPS, HTTP, SSH git@, SSH protocol formats
+- ✅ After clone/pull, repository is served as local repo
+- ✅ All tests passing (Go + Frontend)
+
+**Architecture Notes:**
+- Clone-first approach: remote repos always cloned to local disk before serving
+- No API-based browsing of remote repos (deferred, may be added later)
+- Interactive prompts use stderr for output, stdin for input (follows Unix conventions)
+- Clone path follows GitHub conventions: ~/.giki/repos/<owner>/<repo>/
+- URL parsing is permissive (handles various formats and edge cases)
+- Pull errors are warnings, not failures (can continue with existing state)
+- go-git used throughout (no git CLI dependency)
+- Authentication not yet implemented (Step 25 will add PAT support)
+- After cloning, same LocalProvider serves the repo (existing API unchanged)
+
+**Files Changed:**
+- internal/git/clone.go (new, 170 lines)
+- internal/git/clone_test.go (new, 250 lines)
+- internal/cli/root.go (modified, +86 lines: handleRemoteURL, promptYesNo, bufio import)
+
+**Next Step:** Step 25 - Authentication and Configuration (PATs for private repos, config file support)
+
+---
