@@ -127,6 +127,26 @@ export async function moveFile(oldPath: string, newPath: string): Promise<void> 
 }
 
 /**
+ * Moves or renames a folder
+ * @param oldPath - Current folder path
+ * @param newPath - New folder path
+ */
+export async function moveFolder(oldPath: string, newPath: string): Promise<void> {
+  const response = await fetch('/api/move-folder', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ oldPath, newPath }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`Failed to move folder: ${error.error || response.statusText}`);
+  }
+}
+
+/**
  * Creates a git commit with the specified message
  * @param message - Commit message
  * @returns Commit hash

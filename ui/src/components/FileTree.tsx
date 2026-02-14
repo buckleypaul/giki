@@ -23,7 +23,7 @@ interface TreeItemProps {
 
 function TreeItem({ node, depth, onFileClick, onDelete, onRename, isDeleted, isMoved }: TreeItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isDirectory = node.children && node.children.length > 0;
+  const isDirectory = !!(node.children && node.children.length > 0);
 
   const handleClick = () => {
     if (isDirectory) {
