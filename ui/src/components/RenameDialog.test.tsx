@@ -267,4 +267,47 @@ describe('RenameDialog', () => {
 
     expect(screen.getByText('Rename / Move File')).toBeInTheDocument();
   });
+
+  it('should prevent self-nesting when renaming folder', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <RenameDialog
+        isOpen={true}
+        currentPath="docs"
+        isFolder={true}
+        onClose={mockOnClose}
+        existingPaths={[]}
+      />
+    );
+
+    const input = screen.getByLabelText('New path:');
+    await user.clear(input);
+    await user.type(input, 'docs/nested'); // Trying to move into itself
+    await user.click(screen.getByRole('button', { name: 'Rename' }));
+
+    expect(screen.getByText('Cannot move a folder into itself')).toBeInTheDocument();
+    expect(mockOnClose).not.toHaveBeenCalled();
+  });
+
+  it('should NOT navigate when renaming a folder', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <RenameDialog
+        isOpen={true}
+        currentPath="docs/getting-started"
+        isFolder={true}
+        onClose={mockOnClose}
+        existingPaths={[]}
+      />
+    );
+
+    const input = screen.getByLabelText('New path:');
+    await user.clear(input);
+    await user.type(input, 'docs/get-started');
+    await user.click(screen.getByRole('button', { name: 'Rename' }));
+
+    // Should NOT navigate for folder renames (folders aren't viewable)
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockOnClose).toHaveBeenCalled();
+  });
 });

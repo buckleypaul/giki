@@ -78,8 +78,13 @@ export default function RenameDialog({
       oldPath: normalizedCurrent,
     });
 
-    // Navigate to new path
-    navigate(`/${normalizedNew}`);
+    // For folders, don't navigate (folders aren't viewable content and haven't been moved yet)
+    // For files, navigate to the new path
+    // TODO: File navigation may also fail if the file doesn't exist at new path yet (pending change)
+    // Consider not navigating for files either, or enhancing pending changes to support moves
+    if (!isFolder) {
+      navigate(`/${normalizedNew}`);
+    }
 
     // Reset and close
     setNewPath('');
