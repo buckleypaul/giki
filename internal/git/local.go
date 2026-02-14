@@ -633,6 +633,66 @@ func (p *LocalProvider) MoveFile(oldPath, newPath string) error {
 	return nil
 }
 
+// MoveFolder moves/renames a folder from oldPath to newPath.
+// This operation moves all files within the folder recursively.
+func (p *LocalProvider) MoveFolder(oldPath, newPath string) error {
+	// Normalize paths: strip leading/trailing slashes, convert to forward slashes
+	oldPath = strings.Trim(oldPath, "/")
+	oldPath = filepath.ToSlash(oldPath)
+	newPath = strings.Trim(newPath, "/")
+	newPath = filepath.ToSlash(newPath)
+
+	// Validate paths are not empty
+	if oldPath == "" || newPath == "" {
+		return fmt.Errorf("paths cannot be empty")
+	}
+
+	// Security: validate paths don't escape repository root
+	if strings.Contains(oldPath, "..") || strings.Contains(newPath, "..") {
+		return fmt.Errorf("invalid path: cannot contain '..'")
+	}
+
+	// Prevent moving a folder into itself (e.g., "foo" -> "foo/bar")
+	if strings.HasPrefix(newPath, oldPath+"/") {
+		return fmt.Errorf("cannot move folder into itself")
+	}
+
+	// Convert to OS-specific path separators
+	oldFullPath := filepath.Join(p.path, filepath.FromSlash(oldPath))
+	newFullPath := filepath.Join(p.path, filepath.FromSlash(newPath))
+
+	// Check if old folder exists and is a directory
+	info, err := os.Stat(oldFullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("source folder not found")
+		}
+		return fmt.Errorf("failed to stat source folder: %w", err)
+	}
+
+	if !info.IsDir() {
+		return fmt.Errorf("source path is not a directory")
+	}
+
+	// Check if new path already exists
+	if _, err := os.Stat(newFullPath); err == nil {
+		return fmt.Errorf("destination folder already exists")
+	}
+
+	// Create parent directories for new path if they don't exist
+	parentDir := filepath.Dir(newFullPath)
+	if err := os.MkdirAll(parentDir, 0755); err != nil {
+		return fmt.Errorf("failed to create parent directories: %w", err)
+	}
+
+	// Move/rename the folder
+	if err := os.Rename(oldFullPath, newFullPath); err != nil {
+		return fmt.Errorf("failed to move folder: %w", err)
+	}
+
+	return nil
+}
+
 // Commit creates a git commit with all staged and unstaged changes.
 // Returns the commit hash on success.
 // Requires a non-empty commit message.

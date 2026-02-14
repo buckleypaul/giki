@@ -29,6 +29,10 @@ type GitProvider interface {
 	// MoveFile moves/renames a file from oldPath to newPath.
 	MoveFile(oldPath, newPath string) error
 
+	// MoveFolder moves/renames a folder from oldPath to newPath.
+	// This operation moves all files within the folder recursively.
+	MoveFolder(oldPath, newPath string) error
+
 	// Commit creates a git commit with all staged and unstaged changes.
 	// Returns the commit hash on success.
 	Commit(message string) (string, error)
