@@ -13,9 +13,10 @@ import (
 
 // Server represents the HTTP server for the Giki application.
 type Server struct {
-	mux      *http.ServeMux
-	port     int
-	provider git.GitProvider
+	mux       *http.ServeMux
+	port      int
+	provider  git.GitProvider
+	themesDir string // directory for user theme files; empty = default (~/.config/giki/themes)
 }
 
 // New creates a new Server instance.
@@ -38,6 +39,7 @@ func New(port int, provider git.GitProvider) *Server {
 	mux.HandleFunc("POST /api/move", s.handleMove)
 	mux.HandleFunc("POST /api/commit", s.handleCommit)
 	mux.HandleFunc("GET /api/search", s.handleSearch)
+	mux.HandleFunc("GET /api/themes", s.handleThemes)
 
 	// Check if we're in dev mode
 	devMode := os.Getenv("GIKI_DEV") == "1"
