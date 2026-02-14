@@ -34,33 +34,5 @@
 }
 
 /* Light mode */
-@media (prefers-color-scheme: light) {
-  .image-view {
-    --bg-primary: #ffffff;
-    --bg-secondary: #f6f8fa;
-    --text-primary: #24292e;
-    --border-color: #e1e4e8;
-  }
-
-  .image-view-body {
-    background:
-      repeating-conic-gradient(#f0f0f0 0% 25%, transparent 0% 50%)
-      50% / 20px 20px;
-  }
-}
 
 /* Dark mode */
-@media (prefers-color-scheme: dark) {
-  .image-view {
-    --bg-primary: #0d1117;
-    --bg-secondary: #161b22;
-    --text-primary: #c9d1d9;
-    --border-color: #30363d;
-  }
-
-  .image-view-body {
-    background:
-      repeating-conic-gradient(#1a1a1a 0% 25%, transparent 0% 50%)
-      50% / 20px 20px;
-  }
-}

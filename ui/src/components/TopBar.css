@@ -28,6 +28,7 @@
   align-items: center;
   gap: 0.75rem;
   font-size: 0.9rem;
+  flex: 1;
 }
 
 .topbar-source {
@@ -82,27 +83,3 @@
   color: var(--text-secondary, #666);
 }
 
-@media (prefers-color-scheme: dark) {
-  .topbar {
-    background-color: var(--bg-secondary, #1e1e1e);
-    border-bottom-color: var(--border-color, #333);
-  }
-
-  .topbar-toggle {
-    color: var(--text-primary, #e0e0e0);
-  }
-
-  .topbar-toggle:hover {
-    background-color: var(--bg-hover, rgba(255, 255, 255, 0.1));
-  }
-
-  .topbar-source {
-    color: var(--text-primary, #e0e0e0);
-  }
-
-  .topbar-separator,
-  .topbar-branch,
-  .topbar-loading {
-    color: var(--text-secondary, #a0a0a0);
-  }
-}

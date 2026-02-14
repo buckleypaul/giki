@@ -39,21 +39,3 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  .content-area {
-    background-color: var(--bg-primary, #121212);
-  }
-
-  .content-area-state h1 {
-    color: var(--text-primary, #e0e0e0);
-  }
-
-  .content-area-state p {
-    color: var(--text-secondary, #a0a0a0);
-  }
-
-  .content-area-spinner {
-    border-color: var(--border-color, #333);
-    border-top-color: var(--primary-color, #0066cc);
-  }
-}

@@ -84,23 +84,6 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  .sidebar {
-    background-color: var(--bg-primary, #121212);
-    border-right-color: var(--border-color, #333);
-  }
-
-  .sidebar-title {
-    color: var(--text-primary, #e0e0e0);
-  }
-
-  .sidebar-placeholder {
-    color: var(--text-secondary, #a0a0a0);
-  }
-
-  @media (max-width: 767px) {
-    .sidebar {
-      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.5);
-    }
-  }
+[data-theme='dark'] .sidebar {
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.5);
 }

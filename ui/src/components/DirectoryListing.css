@@ -52,24 +52,3 @@
   font-weight: normal;
 }
 
-@media (prefers-color-scheme: dark) {
-  .directory-listing h1 {
-    color: var(--text-primary, #e0e0e0);
-  }
-
-  .directory-listing-description {
-    color: var(--text-secondary, #999);
-  }
-
-  .directory-listing-item {
-    border-bottom-color: var(--border-color, #333);
-  }
-
-  .directory-listing-item a {
-    color: var(--text-primary, #e0e0e0);
-  }
-
-  .directory-listing-item a:hover {
-    background: var(--hover-bg, #2a2a2a);
-  }
-}

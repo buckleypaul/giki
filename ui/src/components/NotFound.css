@@ -40,17 +40,3 @@
   background: var(--primary-hover, #0052a3);
 }
 
-@media (prefers-color-scheme: dark) {
-  .not-found h1 {
-    color: var(--text-primary, #e0e0e0);
-  }
-
-  .not-found p {
-    color: var(--text-secondary, #999);
-  }
-
-  .not-found code {
-    background: var(--bg-secondary, #2a2a2a);
-    color: var(--text-primary, #e0e0e0);
-  }
-}
