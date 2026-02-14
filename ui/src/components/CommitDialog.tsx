@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { PendingChange } from '../context/PendingChangesContext';
 import { usePendingChanges } from '../context/PendingChangesContext';
 import { useBranch } from '../context/BranchContext';
-import { writeFile, deleteFile, moveFile, commitChanges, fetchTree, fetchStatus } from '../api/client';
+import { writeFile, deleteFile, moveFile, moveFolder, commitChanges, fetchTree, fetchStatus } from '../api/client';
 import './CreateFileDialog.css';
 
 interface CommitDialogProps {
@@ -38,9 +38,10 @@ export default function CommitDialog({ isOpen, onClose, changes, onSuccess }: Co
     setError(null);
 
     try {
-      // Execute file operations in order: delete, move, create/modify
+      // Execute file operations in order: delete, move, move-folder, create/modify
       const deletes = changes.filter(c => c.type === 'delete');
       const moves = changes.filter(c => c.type === 'move');
+      const folderMoves = changes.filter(c => c.type === 'move-folder');
       const writes = changes.filter(c => c.type === 'create' || c.type === 'modify');
 
       // Delete files first
@@ -52,6 +53,13 @@ export default function CommitDialog({ isOpen, onClose, changes, onSuccess }: Co
       for (const change of moves) {
         if (change.oldPath) {
           await moveFile(change.oldPath, change.path);
+        }
+      }
+
+      // Move folders next
+      for (const change of folderMoves) {
+        if (change.oldPath) {
+          await moveFolder(change.oldPath, change.path);
         }
       }
 
@@ -105,6 +113,7 @@ export default function CommitDialog({ isOpen, onClose, changes, onSuccess }: Co
     modified: changes.filter(c => c.type === 'modify').length,
     deleted: changes.filter(c => c.type === 'delete').length,
     moved: changes.filter(c => c.type === 'move').length,
+    foldersMoved: changes.filter(c => c.type === 'move-folder').length,
   };
 
   const totalChanges = changes.length;
@@ -140,6 +149,11 @@ export default function CommitDialog({ isOpen, onClose, changes, onSuccess }: Co
                 {changesSummary.moved > 0 && (
                   <li className="commit-summary-item commit-summary-moved">
                     {changesSummary.moved} moved
+                  </li>
+                )}
+                {changesSummary.foldersMoved > 0 && (
+                  <li className="commit-summary-item commit-summary-moved">
+                    {changesSummary.foldersMoved} {changesSummary.foldersMoved === 1 ? 'folder' : 'folders'} moved
                   </li>
                 )}
               </ul>
