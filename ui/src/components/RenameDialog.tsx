@@ -59,6 +59,12 @@ export default function RenameDialog({
       return;
     }
 
+    // For folders, prevent moving into itself (self-nesting)
+    if (isFolder && normalizedNew.startsWith(normalizedCurrent + '/')) {
+      setError('Cannot move a folder into itself');
+      return;
+    }
+
     // Check if new path already exists
     if (existingPaths.includes(normalizedNew)) {
       setError('A file already exists at this path');
@@ -67,7 +73,7 @@ export default function RenameDialog({
 
     // Add move pending change
     addChange({
-      type: 'move',
+      type: isFolder ? 'move-folder' : 'move',
       path: normalizedNew,
       oldPath: normalizedCurrent,
     });
@@ -90,7 +96,7 @@ export default function RenameDialog({
   return (
     <div className="dialog-overlay" onClick={handleCancel}>
       <div className="dialog-content" onClick={(e) => e.stopPropagation()}>
-        <h2 className="dialog-title">Rename / Move File</h2>
+        <h2 className="dialog-title">{isFolder ? 'Rename / Move Folder' : 'Rename / Move File'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="dialog-field">
             <label htmlFor="new-path">New path:</label>

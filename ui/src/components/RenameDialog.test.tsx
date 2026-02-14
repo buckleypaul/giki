@@ -239,4 +239,32 @@ describe('RenameDialog', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/NEW_README.md');
     expect(mockOnClose).toHaveBeenCalled();
   });
+
+  it('should show "Rename / Move Folder" title when isFolder is true', () => {
+    renderWithProviders(
+      <RenameDialog
+        isOpen={true}
+        currentPath="docs"
+        isFolder={true}
+        onClose={mockOnClose}
+        existingPaths={[]}
+      />
+    );
+
+    expect(screen.getByText('Rename / Move Folder')).toBeInTheDocument();
+  });
+
+  it('should show "Rename / Move File" title when isFolder is false', () => {
+    renderWithProviders(
+      <RenameDialog
+        isOpen={true}
+        currentPath="readme.md"
+        isFolder={false}
+        onClose={mockOnClose}
+        existingPaths={[]}
+      />
+    );
+
+    expect(screen.getByText('Rename / Move File')).toBeInTheDocument();
+  });
 });
