@@ -5,14 +5,14 @@ test.describe('File Tree', () => {
     await page.goto('/');
 
     // Get all items in the file tree
-    const items = page.locator('[data-testid="tree-item"], .tree-item, .file-tree li');
+    const items = page.locator('.tree-item');
 
     // Verify tree is visible
     await expect(items.first()).toBeVisible();
 
     // Directories should appear (docs/, src/)
-    await expect(page.locator('text=docs')).toBeVisible();
-    await expect(page.locator('text=src')).toBeVisible();
+    await expect(page.locator('.tree-item-name', { hasText: 'docs' })).toBeVisible();
+    await expect(page.locator('.tree-item-name', { hasText: 'src' })).toBeVisible();
   });
 
   test('expands and collapses directories', async ({ page }) => {

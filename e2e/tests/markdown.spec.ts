@@ -28,8 +28,8 @@ test.describe('Markdown Rendering', () => {
   test('relative links trigger SPA navigation', async ({ page }) => {
     await page.goto('/');
 
-    // Click relative link to docs/guide.md
-    await page.click('a[href="docs/guide.md"]');
+    // Click relative link to docs/guide.md (rendered as /docs/guide.md by React Router)
+    await page.click('a[href="/docs/guide.md"]');
 
     // Should navigate via SPA (no full page reload)
     await expect(page).toHaveURL(/\/docs\/guide\.md$/);

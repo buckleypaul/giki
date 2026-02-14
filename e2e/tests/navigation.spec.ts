@@ -6,14 +6,22 @@ test.describe('Navigation', () => {
 
     // Should load README.md by default
     await expect(page.locator('h1')).toContainText('Test Repository');
-    await expect(page.locator('h2')).toContainText('Features');
+    await expect(page.locator('#features')).toContainText('Features');
   });
 
   test('sidebar click loads file', async ({ page }) => {
     await page.goto('/');
 
-    // Click on docs/guide.md in the sidebar
-    await page.click('text=guide.md');
+    // Expand docs directory first
+    const docsDir = page.locator('.tree-item-name', { hasText: 'docs' });
+    await docsDir.click();
+
+    // Wait for expansion
+    await page.waitForTimeout(300);
+
+    // Click on guide.md in the sidebar
+    const guideFile = page.locator('.tree-item-name', { hasText: 'guide.md' });
+    await guideFile.click();
 
     // Should navigate to guide.md
     await expect(page).toHaveURL(/\/docs\/guide\.md$/);
@@ -23,12 +31,19 @@ test.describe('Navigation', () => {
   test('back/forward navigation works', async ({ page }) => {
     await page.goto('/');
 
+    // Expand docs directory first
+    const docsDir = page.locator('.tree-item-name', { hasText: 'docs' });
+    await docsDir.click();
+    await page.waitForTimeout(300);
+
     // Navigate to guide
-    await page.click('text=guide.md');
+    const guideFile = page.locator('.tree-item-name', { hasText: 'guide.md' });
+    await guideFile.click();
     await expect(page.locator('h1')).toContainText('User Guide');
 
-    // Navigate to api.md
-    await page.click('text=api.md');
+    // Navigate to api.md (should still be expanded)
+    const apiFile = page.locator('.tree-item-name', { hasText: 'api.md' });
+    await apiFile.click();
     await expect(page.locator('h1')).toContainText('API Documentation');
 
     // Go back

@@ -5,12 +5,12 @@ test.describe('Theme Toggle', () => {
     await page.goto('/');
 
     // Find theme toggle button
-    const themeToggle = page.locator('button[aria-label*="theme"], button:has-text("Light"), button:has-text("Dark"), [data-testid="theme-toggle"]');
+    const themeToggle = page.locator('.theme-toggle');
     await expect(themeToggle).toBeVisible();
 
     // Get initial theme
     const htmlElement = page.locator('html');
-    const initialClass = await htmlElement.getAttribute('class');
+    const initialTheme = await htmlElement.getAttribute('data-theme');
 
     // Toggle theme
     await themeToggle.click();
@@ -19,34 +19,35 @@ test.describe('Theme Toggle', () => {
     await page.waitForTimeout(300);
 
     // Theme should have changed
-    const newClass = await htmlElement.getAttribute('class');
-    expect(newClass).not.toBe(initialClass);
+    const newTheme = await htmlElement.getAttribute('data-theme');
+    expect(newTheme).not.toBe(initialTheme);
+    expect(['light', 'dark']).toContain(newTheme);
   });
 
   test('theme persists on reload', async ({ page }) => {
     await page.goto('/');
 
     // Toggle to dark theme
-    const themeToggle = page.locator('button[aria-label*="theme"], button:has-text("Light"), button:has-text("Dark"), [data-testid="theme-toggle"]');
+    const themeToggle = page.locator('.theme-toggle');
+    const htmlElement = page.locator('html');
 
     // Make sure we're on light theme first
-    const htmlElement = page.locator('html');
-    let currentClass = await htmlElement.getAttribute('class');
+    let currentTheme = await htmlElement.getAttribute('data-theme');
 
     // Toggle to dark if we're on light
-    if (!currentClass?.includes('dark')) {
+    if (currentTheme === 'light') {
       await themeToggle.click();
       await page.waitForTimeout(300);
     }
 
-    // Get dark theme class
-    const darkClass = await htmlElement.getAttribute('class');
+    // Get current theme (should be dark now)
+    const themeBeforeReload = await htmlElement.getAttribute('data-theme');
 
     // Reload page
     await page.reload();
 
     // Theme should persist
-    const reloadedClass = await htmlElement.getAttribute('class');
-    expect(reloadedClass).toBe(darkClass);
+    const themeAfterReload = await htmlElement.getAttribute('data-theme');
+    expect(themeAfterReload).toBe(themeBeforeReload);
   });
 });

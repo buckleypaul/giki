@@ -4,11 +4,14 @@ test.describe('File Viewers', () => {
   test('code files show syntax-highlighted view', async ({ page }) => {
     await page.goto('/src/main.go');
 
-    // Should display code with syntax highlighting
-    const codeBlock = page.locator('pre code, .code-view');
-    await expect(codeBlock).toBeVisible();
-    await expect(codeBlock).toContainText('package main');
-    await expect(codeBlock).toContainText('func main()');
+    // Should display code view
+    const codeView = page.locator('.code-view');
+    await expect(codeView).toBeVisible();
+
+    // Check for syntax highlighting
+    const codeContent = page.locator('.code-view-content code');
+    await expect(codeContent).toBeVisible();
+    await expect(codeContent).toContainText('package main');
   });
 
   test('images display with img tag', async ({ page }) => {
@@ -22,8 +25,11 @@ test.describe('File Viewers', () => {
   test('binary files show binary card', async ({ page }) => {
     await page.goto('/binary.dat');
 
-    // Should show binary file indicator/card
-    // This might be a message or icon indicating binary file
-    await expect(page.locator('text=/binary|cannot display|download/i')).toBeVisible();
+    // Should show binary card
+    const binaryCard = page.locator('.binary-card');
+    await expect(binaryCard).toBeVisible();
+
+    // Should have message about binary file
+    await expect(page.locator('.binary-card-message')).toContainText('cannot be displayed');
   });
 });

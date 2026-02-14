@@ -5,11 +5,11 @@ test.describe('Editor', () => {
     await page.goto('/README.md');
 
     // Click edit button
-    const editButton = page.locator('button:has-text("Edit"), [data-testid="edit-button"]');
+    const editButton = page.locator('.markdown-edit-button');
     await editButton.click();
 
     // Editor should appear
-    const editor = page.locator('.cm-editor, [data-testid="editor"]');
+    const editor = page.locator('.cm-editor');
     await expect(editor).toBeVisible();
   });
 
@@ -17,10 +17,10 @@ test.describe('Editor', () => {
     await page.goto('/README.md');
 
     // Open editor
-    await page.click('button:has-text("Edit"), [data-testid="edit-button"]');
+    await page.click('.markdown-edit-button');
 
     // Wait for editor
-    const editor = page.locator('.cm-editor, [data-testid="editor"]');
+    const editor = page.locator('.cm-editor');
     await expect(editor).toBeVisible();
 
     // Type in editor
@@ -35,19 +35,18 @@ test.describe('Editor', () => {
     await page.goto('/README.md');
 
     // Open editor and make changes
-    await page.click('button:has-text("Edit"), [data-testid="edit-button"]');
-    const editor = page.locator('.cm-editor, [data-testid="editor"]');
+    await page.click('.markdown-edit-button');
+    const editor = page.locator('.cm-editor');
     await editor.click();
     await page.keyboard.type('\n\nPending change');
 
-    // Save/close editor to see pending indicator
-    const saveButton = page.locator('button:has-text("Save"), button:has-text("Done"), [data-testid="save-button"]');
-    if (await saveButton.isVisible()) {
-      await saveButton.click();
-    }
+    // Save changes
+    const saveButton = page.locator('.editor-save');
+    await saveButton.click();
 
-    // Pending changes indicator should appear
-    const pendingIndicator = page.locator('text=/pending|modified|unsaved/i, [data-testid="pending-changes"]');
-    await expect(pendingIndicator).toBeVisible();
+    // Pending changes badge should appear in top bar
+    const pendingBadge = page.locator('.topbar-pending-badge');
+    await expect(pendingBadge).toBeVisible();
+    await expect(pendingBadge).toContainText('1');
   });
 });

@@ -5,32 +5,38 @@ test.describe('Commit', () => {
     await page.goto('/README.md');
 
     // Edit file
-    await page.click('button:has-text("Edit"), [data-testid="edit-button"]');
-    const editor = page.locator('.cm-editor, [data-testid="editor"]');
+    await page.click('.markdown-edit-button');
+    const editor = page.locator('.cm-editor');
     await editor.click();
     await page.keyboard.type('\n\nE2E test commit content');
 
     // Save changes
-    const saveButton = page.locator('button:has-text("Save"), button:has-text("Done")');
-    if (await saveButton.isVisible()) {
-      await saveButton.click();
-    }
+    const saveButton = page.locator('.editor-save');
+    await saveButton.click();
 
-    // Open commit dialog
-    const commitButton = page.locator('button:has-text("Commit"), [data-testid="commit-button"]');
+    // Wait for pending badge to appear
+    await page.waitForTimeout(500);
+
+    // Click pending changes badge to open dialog
+    const pendingBadge = page.locator('.topbar-pending-badge');
+    await pendingBadge.click();
+
+    // Click "Commit..." button in pending changes dialog
+    const commitButton = page.locator('button:has-text("Commit...")');
     await commitButton.click();
 
-    // Fill commit message
-    const messageInput = page.locator('input[placeholder*="message"], textarea[placeholder*="message"], [data-testid="commit-message"]');
+    // Fill commit message in commit dialog
+    const messageInput = page.locator('#commit-message');
     await messageInput.fill('E2E test commit');
 
     // Submit commit
-    const submitButton = page.locator('button:has-text("Commit"), button:has-text("Create commit")').last();
+    const submitButton = page.locator('button:has-text("Commit")').last();
     await submitButton.click();
 
-    // Pending changes should be cleared
+    // Wait for commit to complete
     await page.waitForTimeout(1000);
-    const pendingIndicator = page.locator('[data-testid="pending-changes"]');
-    await expect(pendingIndicator).not.toBeVisible();
+
+    // Pending changes badge should be gone
+    await expect(pendingBadge).not.toBeVisible();
   });
 });
