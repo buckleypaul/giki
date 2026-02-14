@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
 // GetClonePath returns the path where a remote URL would be cloned,
@@ -33,19 +34,40 @@ func GetClonePath(url string) (path string, exists bool, err error) {
 	return targetPath, false, nil
 }
 
-// CloneRemote clones a remote git repository to the specified path.
+// CloneRemote clones a remote git repository to the specified path without authentication.
 // Use GetClonePath first to determine the path and check if it already exists.
+// For private repositories, use CloneRemoteWithAuth instead.
 func CloneRemote(url, targetPath string) error {
+	return CloneRemoteWithAuth(url, targetPath, "")
+}
+
+// CloneRemoteWithAuth clones a remote git repository with optional authentication.
+// If token is empty, no authentication is used (for public repos).
+// Use GetClonePath first to determine the path and check if it already exists.
+func CloneRemoteWithAuth(url, targetPath, token string) error {
 	// Create parent directories
 	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
 		return fmt.Errorf("failed to create parent directories: %w", err)
 	}
 
-	// Clone the repository
-	_, err := git.PlainClone(targetPath, false, &git.CloneOptions{
+	// Prepare clone options
+	cloneOpts := &git.CloneOptions{
 		URL:      url,
 		Progress: os.Stdout,
-	})
+	}
+
+	// Add authentication if token is provided
+	if token != "" {
+		// For HTTPS URLs, use token as username with empty password
+		// This works for both GitHub (PAT) and GitLab (PAT)
+		cloneOpts.Auth = &http.BasicAuth{
+			Username: token, // GitHub/GitLab PATs can be used as username
+			Password: "",    // Leave password empty
+		}
+	}
+
+	// Clone the repository
+	_, err := git.PlainClone(targetPath, false, cloneOpts)
 	if err != nil {
 		return fmt.Errorf("failed to clone repository: %w", err)
 	}
@@ -53,8 +75,15 @@ func CloneRemote(url, targetPath string) error {
 	return nil
 }
 
-// PullExisting pulls the latest changes from the remote for an existing repository.
+// PullExisting pulls the latest changes from the remote for an existing repository without authentication.
+// For private repositories, use PullExistingWithAuth instead.
 func PullExisting(path string) error {
+	return PullExistingWithAuth(path, "")
+}
+
+// PullExistingWithAuth pulls the latest changes with optional authentication.
+// If token is empty, no authentication is used (for public repos).
+func PullExistingWithAuth(path, token string) error {
 	repo, err := git.PlainOpen(path)
 	if err != nil {
 		return fmt.Errorf("failed to open repository: %w", err)
@@ -65,9 +94,20 @@ func PullExisting(path string) error {
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 
-	err = worktree.Pull(&git.PullOptions{
+	// Prepare pull options
+	pullOpts := &git.PullOptions{
 		RemoteName: "origin",
-	})
+	}
+
+	// Add authentication if token is provided
+	if token != "" {
+		pullOpts.Auth = &http.BasicAuth{
+			Username: token, // GitHub/GitLab PATs can be used as username
+			Password: "",    // Leave password empty
+		}
+	}
+
+	err = worktree.Pull(pullOpts)
 	if err != nil {
 		// If already up-to-date, that's not an error
 		if err == git.NoErrAlreadyUpToDate {

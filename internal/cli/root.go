@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/buckleypaul/giki/internal/config"
 	"github.com/buckleypaul/giki/internal/git"
 	"github.com/buckleypaul/giki/internal/server"
 	"github.com/pkg/browser"
@@ -17,6 +18,7 @@ import (
 var (
 	port   int
 	branch string
+	token  string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -32,6 +34,7 @@ You can browse local repositories or clone remote ones.`,
 func init() {
 	rootCmd.Flags().IntVarP(&port, "port", "p", 4242, "Port to run the server on")
 	rootCmd.Flags().StringVarP(&branch, "branch", "b", "", "Branch to browse (defaults to HEAD)")
+	rootCmd.Flags().StringVarP(&token, "token", "t", "", "Personal access token for authentication (GitHub or GitLab)")
 	rootCmd.AddCommand(versionCmd)
 }
 
@@ -42,6 +45,12 @@ func Execute() error {
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
 	// Determine the path or URL
 	pathOrURL := "."
 	if len(args) == 1 {
@@ -52,11 +61,10 @@ func run(cmd *cobra.Command, args []string) error {
 	isURL := isRemoteURL(pathOrURL)
 
 	var absPath string
-	var err error
 
 	if isURL {
 		// Handle remote repository cloning
-		absPath, err = handleRemoteURL(pathOrURL)
+		absPath, err = handleRemoteURL(pathOrURL, cfg)
 		if err != nil {
 			return err
 		}
@@ -149,7 +157,19 @@ func checkPortAvailable(port int) error {
 }
 
 // handleRemoteURL handles cloning a remote repository
-func handleRemoteURL(url string) (string, error) {
+func handleRemoteURL(url string, cfg *config.Config) (string, error) {
+	// Resolve authentication token based on the repository host
+	// For now, we'll use GitHub token for github.com and GitLab token for gitlab.com
+	// This is a simple heuristic - a more robust solution would detect the host
+	var authToken string
+	if strings.Contains(url, "github.com") {
+		resolved := cfg.ResolveGitHubToken(token)
+		authToken = resolved.Value
+	} else if strings.Contains(url, "gitlab.com") {
+		resolved := cfg.ResolveGitLabToken(token)
+		authToken = resolved.Value
+	}
+
 	// Check where the repository would be cloned and if it already exists
 	path, exists, err := git.GetClonePath(url)
 	if err != nil {
@@ -166,7 +186,7 @@ func handleRemoteURL(url string) (string, error) {
 
 		// User wants to pull
 		fmt.Fprintf(os.Stderr, "Pulling latest changes...\n")
-		if err := git.PullExisting(path); err != nil {
+		if err := git.PullExistingWithAuth(path, authToken); err != nil {
 			// Pull failed, but we can still serve the repo
 			fmt.Fprintf(os.Stderr, "Warning: failed to pull: %v\n", err)
 			fmt.Fprintf(os.Stderr, "Continuing with existing repository...\n")
@@ -183,7 +203,7 @@ func handleRemoteURL(url string) (string, error) {
 
 	// User confirmed - perform the clone
 	fmt.Fprintf(os.Stderr, "Cloning repository to %s...\n", path)
-	if err := git.CloneRemote(url, path); err != nil {
+	if err := git.CloneRemoteWithAuth(url, path, authToken); err != nil {
 		return "", fmt.Errorf("clone failed: %w", err)
 	}
 
