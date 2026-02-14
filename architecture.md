@@ -161,3 +161,37 @@ Giki uses GoReleaser with GitHub Actions for automated release management and di
 - Phase 5 (Distribution): Steps 24-25, 27 (remote repos, theming, search, e2e tests)
 
 See `progress-log.md` for detailed implementation history.
+
+## End-to-End Testing
+
+Giki uses Playwright for browser-based end-to-end tests that verify the complete application stack.
+
+### Test Infrastructure (e2e/)
+- **Test runner**: Playwright with multi-browser support (Chromium, Firefox, WebKit)
+- **Test server**: Playwright's webServer launches giki binary against test fixture on port 4243
+- **Test fixture**: Realistic git repository with multiple branches, markdown files, code, images
+- **Test coverage**: 11 test suites with 35+ tests covering all major features
+
+### Test Suites
+1. **Navigation**: Root page, sidebar navigation, browser history integration
+2. **Markdown Rendering**: GFM tables, code blocks, syntax highlighting, relative links
+3. **File Tree**: Directory sorting, expand/collapse, gitignore handling
+4. **File Viewers**: Code viewer, image viewer, binary file handling
+5. **Branch Switching**: Branch dropdown, tree updates, missing file redirects
+6. **URL Routing**: Direct navigation, 404 handling, directory listings
+7. **Editor**: CodeMirror integration, typing, pending changes indicator
+8. **Commit**: Edit workflow, commit dialog, pending changes cleared after commit
+9. **Search**: Filename search, content search, result navigation
+10. **Theme**: Dark/light toggle, localStorage persistence
+11. **Responsive**: Mobile viewport, sidebar collapse, content readability
+
+### Running E2E Tests
+```bash
+cd e2e
+npm test                   # Run all tests headless
+npm run test:headed        # Run with browser UI
+npm run test:ui            # Run with Playwright UI
+npm run test:debug         # Run in debug mode
+```
+
+The tests require the giki binary to be built first (`make build` at project root).
