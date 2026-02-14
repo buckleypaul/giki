@@ -65,3 +65,84 @@ export async function fetchStatus(): Promise<RepoStatus> {
 
   return response.json();
 }
+
+/**
+ * Writes a file to disk
+ * @param path - File path relative to repository root
+ * @param content - File content to write
+ */
+export async function writeFile(path: string, content: string): Promise<void> {
+  const response = await fetch('/api/write', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ path, content }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`Failed to write file: ${error.error || response.statusText}`);
+  }
+}
+
+/**
+ * Deletes a file from disk
+ * @param path - File path relative to repository root
+ */
+export async function deleteFile(path: string): Promise<void> {
+  const response = await fetch('/api/delete', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ path }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`Failed to delete file: ${error.error || response.statusText}`);
+  }
+}
+
+/**
+ * Moves or renames a file
+ * @param oldPath - Current file path
+ * @param newPath - New file path
+ */
+export async function moveFile(oldPath: string, newPath: string): Promise<void> {
+  const response = await fetch('/api/move', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ oldPath, newPath }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`Failed to move file: ${error.error || response.statusText}`);
+  }
+}
+
+/**
+ * Creates a git commit with the specified message
+ * @param message - Commit message
+ * @returns Commit hash
+ */
+export async function commitChanges(message: string): Promise<{ hash: string }> {
+  const response = await fetch('/api/commit', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(`Failed to commit changes: ${error.error || response.statusText}`);
+  }
+
+  return response.json();
+}

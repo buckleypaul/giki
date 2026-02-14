@@ -125,8 +125,126 @@
   background-color: #dc2626;
 }
 
+.dialog-button-primary:disabled,
+.dialog-button-secondary:disabled,
+.dialog-button-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dialog-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.dialog-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.dialog-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.dialog-body {
+  margin-bottom: 20px;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.commit-summary {
+  margin-bottom: 20px;
+  padding: 12px;
+  background-color: var(--bg-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.commit-summary-title {
+  margin: 0 0 8px 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.commit-summary-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.commit-summary-item {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.commit-summary-created {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.commit-summary-modified {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.commit-summary-deleted {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.commit-summary-moved {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
 @media (prefers-color-scheme: dark) {
   .dialog-content {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .commit-summary {
+    background-color: var(--bg-tertiary);
+  }
+
+  .commit-summary-created {
+    background-color: #064e3b;
+    color: #d1fae5;
+  }
+
+  .commit-summary-modified {
+    background-color: #1e3a8a;
+    color: #dbeafe;
+  }
+
+  .commit-summary-deleted {
+    background-color: #7f1d1d;
+    color: #fee2e2;
+  }
+
+  .commit-summary-moved {
+    background-color: #78350f;
+    color: #fef3c7;
   }
 }

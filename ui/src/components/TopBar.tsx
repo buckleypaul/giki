@@ -7,9 +7,10 @@ import './TopBar.css';
 
 interface TopBarProps {
   onToggleSidebar: () => void;
+  onOpenPendingChanges?: () => void;
 }
 
-export default function TopBar({ onToggleSidebar }: TopBarProps) {
+export default function TopBar({ onToggleSidebar, onOpenPendingChanges }: TopBarProps) {
   const [status, setStatus] = useState<RepoStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { getChanges } = usePendingChanges();
@@ -39,9 +40,13 @@ export default function TopBar({ onToggleSidebar }: TopBarProps) {
             <BranchSelector />
             {status.isDirty && <span className="topbar-dirty" title="Uncommitted changes">●</span>}
             {pendingChangesCount > 0 && (
-              <span className="topbar-pending-badge" title={`${pendingChangesCount} pending change${pendingChangesCount === 1 ? '' : 's'}`}>
+              <button
+                className="topbar-pending-badge"
+                onClick={onOpenPendingChanges}
+                title={`${pendingChangesCount} pending change${pendingChangesCount === 1 ? '' : 's'} (click to review)`}
+              >
                 {pendingChangesCount}
-              </span>
+              </button>
             )}
           </>
         ) : (

@@ -3,10 +3,12 @@ import { useBranch } from '../context/BranchContext';
 import TopBar from './TopBar';
 import Sidebar from './Sidebar';
 import ContentArea from './ContentArea';
+import PendingChanges from './PendingChanges';
 import './Layout.css';
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showPendingChanges, setShowPendingChanges] = useState(false);
   const { selectedBranch } = useBranch();
 
   // Close sidebar by default on narrow viewports
@@ -28,11 +30,18 @@ export default function Layout() {
 
   return (
     <div className="layout">
-      <TopBar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+      <TopBar
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        onOpenPendingChanges={() => setShowPendingChanges(true)}
+      />
       <div className="layout-main">
         <Sidebar isOpen={sidebarOpen} branch={selectedBranch ?? undefined} />
         <ContentArea branch={selectedBranch ?? undefined} />
       </div>
+      <PendingChanges
+        isOpen={showPendingChanges}
+        onClose={() => setShowPendingChanges(false)}
+      />
     </div>
   );
 }

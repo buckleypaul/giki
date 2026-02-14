@@ -65,6 +65,13 @@
   line-height: 1.2;
   min-width: 1.5rem;
   text-align: center;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.topbar-pending-badge:hover {
+  background-color: #2563eb;
 }
 
 .topbar-error {
