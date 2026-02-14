@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"os"
@@ -50,15 +51,21 @@ func run(cmd *cobra.Command, args []string) error {
 	// Detect if it's a URL or local path
 	isURL := isRemoteURL(pathOrURL)
 
-	if isURL {
-		// Remote repository handling will be implemented in Step 24
-		return fmt.Errorf("remote repository cloning not yet implemented (coming in Step 24)")
-	}
+	var absPath string
+	var err error
 
-	// Handle local path
-	absPath, err := resolveLocalPath(pathOrURL)
-	if err != nil {
-		return err
+	if isURL {
+		// Handle remote repository cloning
+		absPath, err = handleRemoteURL(pathOrURL)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Handle local path
+		absPath, err = resolveLocalPath(pathOrURL)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Validate the path exists
@@ -139,4 +146,86 @@ func checkPortAvailable(port int) error {
 	}
 	listener.Close()
 	return nil
+}
+
+// handleRemoteURL handles cloning a remote repository
+func handleRemoteURL(url string) (string, error) {
+	// Check where the repository would be cloned and if it already exists
+	path, exists, err := git.GetClonePath(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to process remote URL: %w", err)
+	}
+
+	if exists {
+		// Repository already exists - prompt to pull
+		if !promptYesNo(fmt.Sprintf("Repository already exists at %s. Pull latest changes?", path), true) {
+			// User declined to pull, but we can still serve the existing repo
+			fmt.Fprintf(os.Stderr, "Using existing repository at %s\n", path)
+			return path, nil
+		}
+
+		// User wants to pull
+		fmt.Fprintf(os.Stderr, "Pulling latest changes...\n")
+		if err := git.PullExisting(path); err != nil {
+			// Pull failed, but we can still serve the repo
+			fmt.Fprintf(os.Stderr, "Warning: failed to pull: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Continuing with existing repository...\n")
+		} else {
+			fmt.Fprintf(os.Stderr, "Successfully pulled latest changes.\n")
+		}
+		return path, nil
+	}
+
+	// Repository doesn't exist - prompt to clone
+	if !promptYesNo(fmt.Sprintf("Clone repository from %s?", url), true) {
+		return "", fmt.Errorf("clone cancelled by user")
+	}
+
+	// User confirmed - perform the clone
+	fmt.Fprintf(os.Stderr, "Cloning repository to %s...\n", path)
+	if err := git.CloneRemote(url, path); err != nil {
+		return "", fmt.Errorf("clone failed: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "Successfully cloned.\n")
+	return path, nil
+}
+
+// promptYesNo prompts the user for a yes/no response
+// defaultYes determines whether Enter defaults to yes (true) or no (false)
+func promptYesNo(prompt string, defaultYes bool) bool {
+	reader := bufio.NewReader(os.Stdin)
+
+	suffix := " [Y/n] "
+	if !defaultYes {
+		suffix = " [y/N] "
+	}
+
+	fmt.Fprint(os.Stderr, prompt+suffix)
+
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		// On error, use the default
+		return defaultYes
+	}
+
+	response = strings.TrimSpace(strings.ToLower(response))
+
+	// Empty response (just Enter) uses default
+	if response == "" {
+		return defaultYes
+	}
+
+	// Explicit yes responses
+	if response == "y" || response == "yes" {
+		return true
+	}
+
+	// Explicit no responses
+	if response == "n" || response == "no" {
+		return false
+	}
+
+	// Anything else uses default
+	return defaultYes
 }
