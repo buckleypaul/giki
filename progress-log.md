@@ -1515,3 +1515,135 @@ giki version dev
 
 ---
 
+## Step 19: File management (move/rename, create directory)
+**Date:** 2026-02-13
+**Phase:** Phase 4 - Editing & File Management
+
+**Summary:**
+- Created `ui/src/components/RenameDialog.tsx` — modal dialog for renaming/moving files:
+  - Pre-filled with current file path when opened
+  - Text input for new path with validation
+  - Validates: non-empty, no ".." traversal, path not same as current, new path doesn't already exist
+  - Normalizes path by stripping leading slash
+  - Adds `move` pending change with `oldPath` and `path` (new path) on submit
+  - Navigates to new path after renaming
+  - Cancel button and overlay click to close
+  - Warning message that change is pending until commit
+- Created `ui/src/components/CreateFolderDialog.tsx` — modal dialog for creating new folders:
+  - Text input for folder path with placeholder ("e.g., docs/guides")
+  - Validates: non-empty, no "..", folder doesn't already exist
+  - Normalizes path by stripping leading/trailing slashes
+  - Creates `.gitkeep` file in directory (git doesn't track empty directories)
+  - Adds `create` pending change for `<folder>/.gitkeep` file
+  - Informational message explaining .gitkeep convention
+  - Cancel button and overlay click to close
+- Updated `ui/src/components/FileTree.tsx` to support rename/move operations:
+  - Added `onRename` prop to FileTree and TreeItem interfaces
+  - Added rename button (✎ icon) to file items, hidden until hover
+  - Button calls `onRename(path)` callback with file path
+  - Updated `mergePendingChanges()` to handle move operations:
+    - Filters out files from old location (`oldPath` from move changes)
+    - Adds moved files at new location (root level for simplicity)
+    - Moved files added alongside created files
+  - Added `isMoved` prop to TreeItem for future styling (currently unused)
+  - Grouped action buttons (rename + delete) in `.tree-item-actions` container
+  - Both buttons hidden by default, shown on hover together
+- Updated `ui/src/components/FileTree.css`:
+  - Added `.tree-item-actions` container with flexbox layout
+  - Added `.tree-item-rename` button styles (blue hover color)
+  - Updated `.tree-item-delete` to work within actions container
+  - Added `.tree-item-moved` class for italic styling (future use)
+  - Both action buttons shown together on tree item hover
+- Updated `ui/src/components/Sidebar.tsx` to integrate new dialogs:
+  - Changed "New File" button to "+ File" for space constraints
+  - Added "+ Folder" button next to file button
+  - Grouped buttons in `.sidebar-buttons` flex container
+  - Added state management for both new dialogs: `showRenameDialog`, `showCreateFolderDialog`, `fileToRename`
+  - Added `handleRename(path)` callback to open RenameDialog
+  - Passed `onRename={handleRename}` to FileTree component
+  - Renders both RenameDialog and CreateFolderDialog components
+  - Both dialogs share `existingPaths` for validation
+- Updated `ui/src/components/Sidebar.css`:
+  - Added `.sidebar-buttons` container with 6px gap between buttons
+  - Added `white-space: nowrap` to sidebar buttons
+  - Maintained consistent blue button styling
+- Created comprehensive test suites:
+  - `RenameDialog.test.tsx`: 12 tests (rendering, validation, normalization, navigation, pending changes)
+  - `CreateFolderDialog.test.tsx`: 12 tests (rendering, validation, .gitkeep creation, normalization, form reset)
+
+**Files Created:**
+- `ui/src/components/RenameDialog.tsx`
+- `ui/src/components/RenameDialog.test.tsx`
+- `ui/src/components/CreateFolderDialog.tsx`
+- `ui/src/components/CreateFolderDialog.test.tsx`
+
+**Files Modified:**
+- `ui/src/components/FileTree.tsx` (added onRename prop, rename button, move handling in merge function)
+- `ui/src/components/FileTree.css` (added rename button and actions container styles)
+- `ui/src/components/Sidebar.tsx` (added folder button, rename/folder dialog management)
+- `ui/src/components/Sidebar.css` (added button group styles)
+
+**Test Results:**
+- ✓ All 189 Vitest tests passed across 18 test suites
+  - RenameDialog: 12 tests (all dialogs, validation, rename flow)
+  - CreateFolderDialog: 12 tests (dialog, validation, .gitkeep creation)
+  - All previous component tests still passing (165 tests)
+- ✓ All Go tests passed (24 tests in cli, git, server packages)
+- ✓ `go vet ./...` passed with no issues
+- ✓ Frontend builds successfully (`npm run build`)
+- ✓ Go binary builds with embedded frontend (13M)
+- ✓ `make build` succeeded
+
+**Vitest Test Coverage:**
+
+1. **RenameDialog (12 tests):**
+   - Does not render when isOpen is false or currentPath is null
+   - Renders dialog with pre-filled current path
+   - Shows error when new path is empty
+   - Shows error when new path contains ".."
+   - Shows error when trying to rename to same path
+   - Shows error when new path already exists
+   - Calls onClose when cancel button clicked or overlay clicked
+   - Does not close when clicking inside dialog content
+   - Successfully renames file and navigates to new path
+   - Normalizes paths by removing leading slash
+
+2. **CreateFolderDialog (12 tests):**
+   - Does not render when isOpen is false
+   - Renders dialog with all UI elements
+   - Shows gitkeep explanation message
+   - Shows error when folder path is empty
+   - Shows error when folder path contains ".."
+   - Shows error when folder already exists (via .gitkeep)
+   - Calls onClose when cancel button or overlay clicked
+   - Does not close when clicking inside dialog content
+   - Creates .gitkeep file for new folder
+   - Normalizes folder path by removing leading and trailing slashes
+   - Resets form when dialog closes and reopens
+
+**Acceptance Criteria (Plan Step 19):**
+- ✅ Rename creates move pending change with old path + new path
+- ✅ Tree shows file at new path (via mergePendingChanges)
+- ✅ New folder appears in tree (via .gitkeep file creation)
+- ✅ Rename dialog pre-filled with current path
+- ✅ Move tracked as `move` type pending change
+- ✅ All changes pending until commit (no disk writes)
+
+**Architecture Notes:**
+- RenameDialog follows same pattern as CreateFileDialog (Step 18 reference)
+- CreateFolderDialog uses .gitkeep convention since git doesn't track empty directories
+- Move operations stored with both `path` (new location) and `oldPath` (original location)
+- FileTree merge function filters old path and adds new path for move operations
+- Simplified implementation: moved/created files only shown at root level
+  - Future enhancement: insert into correct parent directory based on path structure
+- Rename and delete buttons grouped together, shown on hover for better UX
+- All dialogs share CSS file (`CreateFileDialog.css`) for consistency
+- Path validation prevents traversal attacks (no ".." allowed)
+- TypeScript strict mode with proper typing for all props and state
+- Light/dark mode support via CSS custom properties throughout
+- No backend changes required for Step 19 (purely frontend feature)
+
+**Next Step:** Step 20 - Write/delete/move API endpoints + commit endpoint (backend)
+
+---
+
