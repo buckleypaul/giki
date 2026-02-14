@@ -1,0 +1,18 @@
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+*.out
+
+# Temporary files
+.DS_Store
+.idea/
+.vscode/
+
+# Ignored directory and file for E2E test verification
+ignored-dir/
+secret.key
