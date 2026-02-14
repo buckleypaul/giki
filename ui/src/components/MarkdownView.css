@@ -31,7 +31,9 @@
 
 .markdown-view {
   padding: 2rem;
-  max-width: 900px;
+  width: 95%;
+  min-width: 600px;
+  max-width: 1600px;
   margin: 0 auto;
   color: var(--text-primary, #333);
   line-height: 1.6;

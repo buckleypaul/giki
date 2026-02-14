@@ -3,6 +3,7 @@ import { fetchStatus } from '../api/client';
 import type { RepoStatus } from '../api/types';
 import { usePendingChanges } from '../context/PendingChangesContext';
 import { BranchSelector } from './BranchSelector';
+import { ThemeToggle } from './ThemeToggle';
 import './TopBar.css';
 
 interface TopBarProps {
@@ -53,6 +54,7 @@ export default function TopBar({ onToggleSidebar, onOpenPendingChanges }: TopBar
           <span className="topbar-loading">Loading...</span>
         )}
       </div>
+      <ThemeToggle />
     </header>
   );
 }

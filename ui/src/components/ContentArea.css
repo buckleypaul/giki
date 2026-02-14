@@ -6,7 +6,9 @@
 
 .content-area-state {
   padding: 2rem;
-  max-width: 900px;
+  width: 95%;
+  min-width: 600px;
+  max-width: 1600px;
   margin: 4rem auto;
   text-align: center;
 }
