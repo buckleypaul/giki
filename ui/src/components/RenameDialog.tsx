@@ -8,6 +8,7 @@ interface RenameDialogProps {
   onClose: () => void;
   currentPath: string | null;
   existingPaths: string[];
+  isFolder?: boolean;
 }
 
 export default function RenameDialog({
@@ -15,6 +16,7 @@ export default function RenameDialog({
   onClose,
   currentPath,
   existingPaths,
+  isFolder = false,
 }: RenameDialogProps) {
   const [newPath, setNewPath] = useState('');
   const [error, setError] = useState<string | null>(null);

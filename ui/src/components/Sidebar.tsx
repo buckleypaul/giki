@@ -21,6 +21,7 @@ export default function Sidebar({ isOpen, branch }: SidebarProps) {
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [fileToRename, setFileToRename] = useState<string | null>(null);
+  const [isFolderRename, setIsFolderRename] = useState(false);
   const [existingPaths, setExistingPaths] = useState<string[]>([]);
 
   // Fetch tree to get existing paths for validation
@@ -62,8 +63,9 @@ export default function Sidebar({ isOpen, branch }: SidebarProps) {
     setShowDeleteDialog(true);
   };
 
-  const handleRename = (path: string) => {
+  const handleRename = (path: string, isDirectory: boolean) => {
     setFileToRename(path);
+    setIsFolderRename(isDirectory);
     setShowRenameDialog(true);
   };
 
@@ -113,8 +115,10 @@ export default function Sidebar({ isOpen, branch }: SidebarProps) {
         onClose={() => {
           setShowRenameDialog(false);
           setFileToRename(null);
+          setIsFolderRename(false);
         }}
         existingPaths={existingPaths}
+        isFolder={isFolderRename}
       />
 
       <CreateFolderDialog

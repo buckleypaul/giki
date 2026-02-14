@@ -242,4 +242,21 @@ describe('FileTree', () => {
     const renameButton = screen.getByLabelText('Rename docs');
     expect(renameButton).toBeInTheDocument();
   });
+
+  it('should call onRename with isDirectory flag', async () => {
+    const user = userEvent.setup();
+    const mockOnRename = vi.fn();
+
+    renderWithProviders(<FileTree onRename={mockOnRename} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('docs')).toBeInTheDocument();
+    });
+
+    // Click rename button for folder
+    const renameButton = screen.getByLabelText('Rename docs');
+    await user.click(renameButton);
+
+    expect(mockOnRename).toHaveBeenCalledWith('docs', true);
+  });
 });

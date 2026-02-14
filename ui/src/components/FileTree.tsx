@@ -8,7 +8,7 @@ import './FileTree.css';
 interface FileTreeProps {
   branch?: string;
   onDelete?: (path: string) => void;
-  onRename?: (path: string) => void;
+  onRename?: (path: string, isDirectory: boolean) => void;
 }
 
 interface TreeItemProps {
@@ -16,7 +16,7 @@ interface TreeItemProps {
   depth: number;
   onFileClick: (path: string) => void;
   onDelete?: (path: string) => void;
-  onRename?: (path: string) => void;
+  onRename?: (path: string, isDirectory: boolean) => void;
   isDeleted?: boolean;
   isMoved?: boolean;
 }
@@ -43,7 +43,7 @@ function TreeItem({ node, depth, onFileClick, onDelete, onRename, isDeleted, isM
   const handleRename = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onRename) {
-      onRename(node.path);
+      onRename(node.path, isDirectory);
     }
   };
 
