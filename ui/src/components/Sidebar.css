@@ -2,7 +2,9 @@
   width: 280px;
   background-color: var(--bg-primary, #fff);
   border-right: 1px solid var(--border-color, #ddd);
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   transition: margin-left 0.3s ease;
 }
 
@@ -15,7 +17,13 @@
 }
 
 .sidebar-content {
+  flex: 1;
+  overflow-y: auto;
   padding: 1rem;
+}
+
+.sidebar-footer {
+  flex-shrink: 0;
 }
 
 .sidebar-header {

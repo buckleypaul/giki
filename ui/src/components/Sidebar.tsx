@@ -4,6 +4,7 @@ import CreateFileDialog from './CreateFileDialog';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
 import RenameDialog from './RenameDialog';
 import CreateFolderDialog from './CreateFolderDialog';
+import { ThemeSelector } from './ThemeSelector';
 import { fetchTree } from '../api/client';
 import type { TreeNode } from '../api/types';
 import './Sidebar.css';
@@ -121,6 +122,10 @@ export default function Sidebar({ isOpen, branch }: SidebarProps) {
         onClose={() => setShowCreateFolderDialog(false)}
         existingPaths={existingPaths}
       />
+
+      <div className="sidebar-footer">
+        <ThemeSelector />
+      </div>
     </aside>
   );
 }
