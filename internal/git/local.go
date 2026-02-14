@@ -1,6 +1,8 @@
 package git
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -8,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -666,4 +669,242 @@ func (p *LocalProvider) Commit(message string) (string, error) {
 	}
 
 	return hash.String(), nil
+}
+
+// SearchFileNames performs fuzzy filename matching against all files in the repository.
+// Returns paths matching the query, sorted by relevance (exact matches first).
+// Only searches files, not directories. Respects .gitignore rules.
+func (p *LocalProvider) SearchFileNames(query string) ([]string, error) {
+	if query == "" {
+		return []string{}, nil
+	}
+
+	// Normalize query to lowercase for case-insensitive matching
+	queryLower := strings.ToLower(query)
+
+	// Get all files in the repository (current branch)
+	tree, err := p.buildWorkingTreeWithIgnore()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build file tree: %w", err)
+	}
+
+	// Collect all file paths from tree
+	var allFiles []string
+	p.collectFilePaths(tree, &allFiles)
+
+	// Score and filter files based on fuzzy match
+	type scoredPath struct {
+		path  string
+		score int
+	}
+	var matches []scoredPath
+
+	for _, path := range allFiles {
+		pathLower := strings.ToLower(path)
+		score := p.fuzzyMatchScore(queryLower, pathLower)
+		if score > 0 {
+			matches = append(matches, scoredPath{path: path, score: score})
+		}
+	}
+
+	// Sort by score (higher is better), then by path length (shorter is better)
+	sort.Slice(matches, func(i, j int) bool {
+		if matches[i].score != matches[j].score {
+			return matches[i].score > matches[j].score
+		}
+		return len(matches[i].path) < len(matches[j].path)
+	})
+
+	// Extract paths from scored results (limit to 50)
+	var results []string
+	limit := 50
+	for i, match := range matches {
+		if i >= limit {
+			break
+		}
+		results = append(results, match.path)
+	}
+
+	return results, nil
+}
+
+// collectFilePaths recursively collects all file paths from a tree node.
+func (p *LocalProvider) collectFilePaths(node *TreeNode, paths *[]string) {
+	if !node.IsDir && node.Path != "" {
+		*paths = append(*paths, node.Path)
+		return
+	}
+
+	for _, child := range node.Children {
+		p.collectFilePaths(&child, paths)
+	}
+}
+
+// fuzzyMatchScore calculates a score for how well the query matches the path.
+// Returns 0 if no match, higher scores for better matches.
+// Scoring:
+// - 1000 for exact match
+// - 100 for exact substring match
+// - 50 for matching all characters in order
+// - 0 for no match
+func (p *LocalProvider) fuzzyMatchScore(query, path string) int {
+	// Exact match
+	if query == path {
+		return 1000
+	}
+
+	// Exact substring match
+	if strings.Contains(path, query) {
+		return 100
+	}
+
+	// Fuzzy match: all characters in order
+	queryIdx := 0
+	for _, char := range path {
+		if queryIdx < len(query) && byte(char) == query[queryIdx] {
+			queryIdx++
+		}
+	}
+
+	if queryIdx == len(query) {
+		return 50
+	}
+
+	return 0
+}
+
+// SearchContent performs full-text search across all files in the repository.
+// Returns matches with line numbers and surrounding context (2-3 lines).
+// Skips binary files. Case-insensitive search.
+func (p *LocalProvider) SearchContent(query string) ([]SearchResult, error) {
+	if query == "" {
+		return []SearchResult{}, nil
+	}
+
+	// Normalize query to lowercase for case-insensitive search
+	queryLower := strings.ToLower(query)
+
+	// Get all files in the repository (current branch)
+	tree, err := p.buildWorkingTreeWithIgnore()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build file tree: %w", err)
+	}
+
+	// Collect all file paths from tree
+	var allFiles []string
+	p.collectFilePaths(tree, &allFiles)
+
+	// Search each file for matches
+	var results []SearchResult
+	maxResults := 50
+
+	for _, filePath := range allFiles {
+		if len(results) >= maxResults {
+			break
+		}
+
+		// Read file content
+		fullPath := filepath.Join(p.path, filepath.FromSlash(filePath))
+		content, err := os.ReadFile(fullPath)
+		if err != nil {
+			// Skip files that can't be read
+			continue
+		}
+
+		// Skip binary files
+		if !p.isTextFile(content) {
+			continue
+		}
+
+		// Search line-by-line
+		scanner := bufio.NewScanner(bytes.NewReader(content))
+		lineNumber := 0
+		var prevLines []string // Keep last 2 lines for context
+
+		for scanner.Scan() {
+			lineNumber++
+			line := scanner.Text()
+			lineLower := strings.ToLower(line)
+
+			// Check if this line contains the query
+			if strings.Contains(lineLower, queryLower) {
+				// Find the exact match text (preserve case)
+				matchStart := strings.Index(lineLower, queryLower)
+				matchText := line[matchStart : matchStart+len(query)]
+
+				// Build context: previous line(s), current line, next line(s)
+				context := make([]string, 0, 3)
+
+				// Add previous lines (up to 1)
+				if len(prevLines) > 0 {
+					context = append(context, prevLines[len(prevLines)-1])
+				}
+
+				// Add current line (match)
+				context = append(context, line)
+
+				// Try to read next line for context
+				if scanner.Scan() {
+					nextLine := scanner.Text()
+					context = append(context, nextLine)
+					lineNumber++
+					// Update prevLines to include current and next
+					prevLines = []string{line, nextLine}
+				} else {
+					// No next line, update prevLines with just current
+					prevLines = []string{line}
+				}
+
+				results = append(results, SearchResult{
+					Path:       filePath,
+					LineNumber: lineNumber - len(context) + len(prevLines), // Adjust to match line
+					Context:    context,
+					MatchText:  matchText,
+				})
+
+				if len(results) >= maxResults {
+					break
+				}
+
+				continue
+			}
+
+			// Update prevLines buffer (keep last 2 lines)
+			prevLines = append(prevLines, line)
+			if len(prevLines) > 2 {
+				prevLines = prevLines[1:]
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			// Skip files with scan errors
+			continue
+		}
+	}
+
+	return results, nil
+}
+
+// isTextFile checks if the content is likely a text file (not binary).
+// Uses simple heuristics: valid UTF-8 and no null bytes in first 8KB.
+func (p *LocalProvider) isTextFile(content []byte) bool {
+	// Empty files are text
+	if len(content) == 0 {
+		return true
+	}
+
+	// Check first 8KB (or less if file is smaller)
+	sampleSize := 8192
+	if len(content) < sampleSize {
+		sampleSize = len(content)
+	}
+	sample := content[:sampleSize]
+
+	// Check for null bytes (strong indicator of binary)
+	if bytes.Contains(sample, []byte{0}) {
+		return false
+	}
+
+	// Check if valid UTF-8
+	return utf8.Valid(sample)
 }

@@ -17,3 +17,10 @@ export interface RepoStatus {
   branch: string;
   isDirty: boolean;
 }
+
+export interface SearchResult {
+  path: string;
+  lineNumber?: number;  // undefined for filename search
+  context?: string[];   // 3 lines of context for content search
+  matchText?: string;   // for highlighting
+}

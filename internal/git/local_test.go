@@ -1695,3 +1695,319 @@ func TestCommit_EmptyMessage(t *testing.T) {
 		t.Errorf("expected error about empty message, got: %v", err)
 	}
 }
+
+// TestSearchFileNames_FuzzyMatch tests fuzzy filename matching.
+func TestSearchFileNames_FuzzyMatch(t *testing.T) {
+	tempDir := t.TempDir()
+	createTestRepoWithCommit(t, tempDir)
+
+	// Create test files
+	files := []string{
+		"docs/setup.md",
+		"src/setup.go",
+		"tests/setup_test.go",
+		"README.md",
+		"server.go",
+	}
+
+	for _, path := range files {
+		fullPath := filepath.Join(tempDir, path)
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+			t.Fatalf("failed to create directory: %v", err)
+		}
+		if err := os.WriteFile(fullPath, []byte("test content"), 0644); err != nil {
+			t.Fatalf("failed to write file %s: %v", path, err)
+		}
+	}
+
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Test fuzzy match for "setup"
+	results, err := provider.SearchFileNames("setup")
+	if err != nil {
+		t.Fatalf("SearchFileNames failed: %v", err)
+	}
+
+	// Should find all files containing "setup"
+	if len(results) < 3 {
+		t.Errorf("expected at least 3 results for 'setup', got %d", len(results))
+	}
+
+	// Verify results contain setup-related files
+	foundSetupMd := false
+	foundSetupGo := false
+	for _, path := range results {
+		if path == "docs/setup.md" {
+			foundSetupMd = true
+		}
+		if path == "src/setup.go" {
+			foundSetupGo = true
+		}
+	}
+
+	if !foundSetupMd {
+		t.Errorf("expected to find docs/setup.md in results: %v", results)
+	}
+	if !foundSetupGo {
+		t.Errorf("expected to find src/setup.go in results: %v", results)
+	}
+}
+
+// TestSearchFileNames_NoMatches tests filename search with no matches.
+func TestSearchFileNames_NoMatches(t *testing.T) {
+	tempDir := t.TempDir()
+	createTestRepoWithCommit(t, tempDir)
+
+	// Create a test file
+	fullPath := filepath.Join(tempDir, "README.md")
+	if err := os.WriteFile(fullPath, []byte("test content"), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Test search for non-existent filename
+	results, err := provider.SearchFileNames("nonexistent")
+	if err != nil {
+		t.Fatalf("SearchFileNames failed: %v", err)
+	}
+
+	if len(results) != 0 {
+		t.Errorf("expected no results for 'nonexistent', got %d", len(results))
+	}
+}
+
+// TestSearchFileNames_ExactMatch tests exact filename matching.
+func TestSearchFileNames_ExactMatch(t *testing.T) {
+	tempDir := t.TempDir()
+	createTestRepoWithCommit(t, tempDir)
+
+	// Create test files
+	files := []string{
+		"README.md",
+		"README_v2.md",
+		"docs/README.md",
+	}
+
+	for _, path := range files {
+		fullPath := filepath.Join(tempDir, path)
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+			t.Fatalf("failed to create directory: %v", err)
+		}
+		if err := os.WriteFile(fullPath, []byte("test content"), 0644); err != nil {
+			t.Fatalf("failed to write file %s: %v", path, err)
+		}
+	}
+
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Test exact match for "README.md"
+	results, err := provider.SearchFileNames("README.md")
+	if err != nil {
+		t.Fatalf("SearchFileNames failed: %v", err)
+	}
+
+	if len(results) == 0 {
+		t.Fatalf("expected results for 'README.md', got none")
+	}
+
+	// Exact match should be first
+	if results[0] != "README.md" && results[0] != "docs/README.md" {
+		t.Errorf("expected exact match first, got: %v", results)
+	}
+}
+
+// TestSearchContent_FindsMatches tests content search with matches.
+func TestSearchContent_FindsMatches(t *testing.T) {
+	tempDir := t.TempDir()
+	createTestRepoWithCommit(t, tempDir)
+
+	// Create test files with searchable content
+	files := map[string]string{
+		"README.md": `# Installation Guide
+
+To install this package, run:
+
+npm install giki
+
+After installation, you can use it.`,
+		"docs/usage.md": `# Usage
+
+First, install the dependencies.
+
+Then run the server.`,
+	}
+
+	for path, content := range files {
+		fullPath := filepath.Join(tempDir, path)
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+			t.Fatalf("failed to create directory: %v", err)
+		}
+		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+			t.Fatalf("failed to write file %s: %v", path, err)
+		}
+	}
+
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Test content search for "install"
+	results, err := provider.SearchContent("install")
+	if err != nil {
+		t.Fatalf("SearchContent failed: %v", err)
+	}
+
+	if len(results) == 0 {
+		t.Fatalf("expected results for 'install', got none")
+	}
+
+	// Verify results have required fields
+	for _, result := range results {
+		if result.Path == "" {
+			t.Errorf("result missing path")
+		}
+		if result.LineNumber == 0 {
+			t.Errorf("result missing line number")
+		}
+		if len(result.Context) == 0 {
+			t.Errorf("result missing context")
+		}
+		if result.MatchText == "" {
+			t.Errorf("result missing match text")
+		}
+	}
+}
+
+// TestSearchContent_CaseInsensitive tests case-insensitive content search.
+func TestSearchContent_CaseInsensitive(t *testing.T) {
+	tempDir := t.TempDir()
+	createTestRepoWithCommit(t, tempDir)
+
+	// Create test file with mixed case content
+	content := "This is a TEST file with INSTALL instructions."
+	fullPath := filepath.Join(tempDir, "README.md")
+	if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Test lowercase query matching uppercase content
+	results, err := provider.SearchContent("install")
+	if err != nil {
+		t.Fatalf("SearchContent failed: %v", err)
+	}
+
+	if len(results) == 0 {
+		t.Fatalf("expected results for 'install', got none")
+	}
+
+	// Verify match text preserves original case
+	if results[0].MatchText != "INSTALL" {
+		t.Errorf("expected match text 'INSTALL', got %q", results[0].MatchText)
+	}
+}
+
+// TestSearchContent_SkipsBinary tests that binary files are skipped.
+func TestSearchContent_SkipsBinary(t *testing.T) {
+	tempDir := t.TempDir()
+	createTestRepoWithCommit(t, tempDir)
+
+	// Create a text file
+	textPath := filepath.Join(tempDir, "text.txt")
+	if err := os.WriteFile(textPath, []byte("searchable text content"), 0644); err != nil {
+		t.Fatalf("failed to write text file: %v", err)
+	}
+
+	// Create a binary file (with null bytes)
+	binaryPath := filepath.Join(tempDir, "binary.bin")
+	binaryContent := []byte{0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE}
+	if err := os.WriteFile(binaryPath, binaryContent, 0644); err != nil {
+		t.Fatalf("failed to write binary file: %v", err)
+	}
+
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Search for a term that doesn't exist in text file
+	// This ensures binary file would be checked if not properly filtered
+	results, err := provider.SearchContent("text")
+	if err != nil {
+		t.Fatalf("SearchContent failed: %v", err)
+	}
+
+	// Should only find the text file
+	if len(results) != 1 {
+		t.Errorf("expected 1 result (text file only), got %d", len(results))
+	}
+
+	if len(results) > 0 && results[0].Path == "binary.bin" {
+		t.Errorf("binary file should not be included in search results")
+	}
+}
+
+// TestSearchContent_ContextLines tests that context lines are included.
+func TestSearchContent_ContextLines(t *testing.T) {
+	tempDir := t.TempDir()
+	createTestRepoWithCommit(t, tempDir)
+
+	// Create test file with multiple lines
+	content := `Line 1: Before
+Line 2: This contains the MATCH word
+Line 3: After
+Line 4: End`
+
+	fullPath := filepath.Join(tempDir, "test.txt")
+	if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	provider, err := NewLocalProvider(tempDir, "")
+	if err != nil {
+		t.Fatalf("failed to create provider: %v", err)
+	}
+
+	// Search for "MATCH"
+	results, err := provider.SearchContent("match")
+	if err != nil {
+		t.Fatalf("SearchContent failed: %v", err)
+	}
+
+	if len(results) == 0 {
+		t.Fatalf("expected results for 'match', got none")
+	}
+
+	// Verify context includes surrounding lines
+	result := results[0]
+	if len(result.Context) < 2 {
+		t.Errorf("expected at least 2 context lines, got %d", len(result.Context))
+	}
+
+	// Context should include the before line, match line, and after line
+	contextStr := strings.Join(result.Context, "\n")
+	if !strings.Contains(contextStr, "Before") {
+		t.Errorf("context should include previous line: %v", result.Context)
+	}
+	if !strings.Contains(contextStr, "MATCH") {
+		t.Errorf("context should include match line: %v", result.Context)
+	}
+	if !strings.Contains(contextStr, "After") {
+		t.Errorf("context should include next line: %v", result.Context)
+	}
+}

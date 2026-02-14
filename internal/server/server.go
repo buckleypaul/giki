@@ -37,6 +37,7 @@ func New(port int, provider git.GitProvider) *Server {
 	mux.HandleFunc("POST /api/delete", s.handleDelete)
 	mux.HandleFunc("POST /api/move", s.handleMove)
 	mux.HandleFunc("POST /api/commit", s.handleCommit)
+	mux.HandleFunc("GET /api/search", s.handleSearch)
 
 	// Check if we're in dev mode
 	devMode := os.Getenv("GIKI_DEV") == "1"

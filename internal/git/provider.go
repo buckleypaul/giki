@@ -32,6 +32,14 @@ type GitProvider interface {
 	// Commit creates a git commit with all staged and unstaged changes.
 	// Returns the commit hash on success.
 	Commit(message string) (string, error)
+
+	// SearchFileNames performs fuzzy filename matching against all files in the repository.
+	// Returns paths matching the query, sorted by relevance.
+	SearchFileNames(query string) ([]string, error)
+
+	// SearchContent performs full-text search across all files in the repository.
+	// Returns matches with line numbers and surrounding context.
+	SearchContent(query string) ([]SearchResult, error)
 }
 
 // TreeNode represents a file or directory in the repository tree.
@@ -53,4 +61,12 @@ type RepoStatus struct {
 	Source  string `json:"source"`  // local path or remote URL
 	Branch  string `json:"branch"`  // current branch name
 	IsDirty bool   `json:"isDirty"` // true if working tree has uncommitted changes
+}
+
+// SearchResult represents a single content search match.
+type SearchResult struct {
+	Path       string   `json:"path"`       // file path
+	LineNumber int      `json:"lineNumber"` // 1-indexed line number
+	Context    []string `json:"context"`    // surrounding lines (before, match, after)
+	MatchText  string   `json:"matchText"`  // the matched text for highlighting
 }

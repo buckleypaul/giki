@@ -2,7 +2,7 @@
 // All requests go to /api/* which is proxied to Go server in dev mode
 // and served by Go server directly in production
 
-import type { TreeNode, BranchInfo, RepoStatus } from './types';
+import type { TreeNode, BranchInfo, RepoStatus, SearchResult } from './types';
 
 /**
  * Fetches the file tree for the specified branch
@@ -142,6 +142,33 @@ export async function commitChanges(message: string): Promise<{ hash: string }> 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: response.statusText }));
     throw new Error(`Failed to commit changes: ${error.error || response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Performs a search query
+ * @param query - Search query string
+ * @param type - Search type: 'filename' for fuzzy filename matching, 'content' for full-text search
+ * @returns Array of search results
+ */
+export async function search(
+  query: string,
+  type: 'filename' | 'content'
+): Promise<SearchResult[]> {
+  const url = `/api/search?q=${encodeURIComponent(query)}&type=${type}`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Search failed: ${response.statusText}`);
+  }
+
+  // For filename search, response is string[]
+  // For content search, response is SearchResult[]
+  if (type === 'filename') {
+    const paths: string[] = await response.json();
+    return paths.map((path) => ({ path }));
   }
 
   return response.json();
