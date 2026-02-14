@@ -2,7 +2,7 @@ import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 
 export type PendingChange = {
-  type: 'create' | 'modify' | 'delete' | 'move';
+  type: 'create' | 'modify' | 'delete' | 'move' | 'move-folder';
   path: string;
   oldPath?: string;
   content?: string;

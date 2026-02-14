@@ -141,19 +141,49 @@ describe('PendingChangesContext', () => {
         oldPath: 'old/file4.md',
       };
 
+      const moveFolderChange: PendingChange = {
+        type: 'move-folder',
+        path: 'new-folder',
+        oldPath: 'old-folder',
+      };
+
       act(() => {
         result.current.addChange(modifyChange);
         result.current.addChange(createChange);
         result.current.addChange(deleteChange);
         result.current.addChange(moveChange);
+        result.current.addChange(moveFolderChange);
       });
 
       const changes = result.current.getChanges();
-      expect(changes).toHaveLength(4);
+      expect(changes).toHaveLength(5);
       expect(changes.find((c) => c.type === 'modify')).toBeDefined();
       expect(changes.find((c) => c.type === 'create')).toBeDefined();
       expect(changes.find((c) => c.type === 'delete')).toBeDefined();
       expect(changes.find((c) => c.type === 'move')).toBeDefined();
+      expect(changes.find((c) => c.type === 'move-folder')).toBeDefined();
+    });
+
+    it('should handle move-folder pending change', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <PendingChangesProvider>{children}</PendingChangesProvider>
+      );
+
+      const { result } = renderHook(() => usePendingChanges(), { wrapper });
+
+      act(() => {
+        result.current.addChange({
+          type: 'move-folder',
+          path: 'new-folder',
+          oldPath: 'old-folder',
+        });
+      });
+
+      const changes = result.current.getChanges();
+      expect(changes).toHaveLength(1);
+      expect(changes[0].type).toBe('move-folder');
+      expect(changes[0].path).toBe('new-folder');
+      expect(changes[0].oldPath).toBe('old-folder');
     });
   });
 
