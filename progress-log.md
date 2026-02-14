@@ -1752,3 +1752,168 @@ giki version dev
 
 ---
 
+## Step 21: Review changes panel + commit dialog (frontend)
+**Date:** 2026-02-14
+**Phase:** Phase 4 - Editing & File Management
+
+**Summary:**
+- Added API client functions in `ui/src/api/client.ts`:
+  - `writeFile(path, content)` — POST /api/write
+  - `deleteFile(path)` — POST /api/delete
+  - `moveFile(oldPath, newPath)` — POST /api/move
+  - `commitChanges(message)` — POST /api/commit, returns commit hash
+  - All functions with proper error handling and JSON response parsing
+- Created `ui/src/components/PendingChanges.tsx` — review panel modal:
+  - Groups changes by type: created (green), modified (blue), deleted (red), moved (yellow)
+  - Each group shows count and badge with type indicator
+  - Change items display diff information:
+    - Created/Modified: file path + line count
+    - Deleted: file path with strikethrough styling
+    - Moved: oldPath → newPath with arrow
+  - Individual discard buttons (×) for each change
+  - "Commit..." button opens CommitDialog (disabled when no changes)
+  - "Close" button dismisses panel
+  - Empty state message when no changes pending
+- Created `ui/src/components/PendingChanges.css`:
+  - Modal overlay with semi-transparent background
+  - Dialog content with header, scrollable body, footer
+  - Grouped change lists with color-coded badges
+  - Change items with hover states and discard buttons
+  - Light/dark mode support via CSS custom properties
+  - Responsive design for mobile viewports
+- Created `ui/src/components/CommitDialog.tsx` — commit submission modal:
+  - Text area for commit message with placeholder
+  - Summary showing count of files by type (created/modified/deleted/moved)
+  - Executes file operations in correct order:
+    1. Delete files first
+    2. Move files next
+    3. Write (create/modify) files last
+    4. Create git commit with message
+  - Calls `clearChanges()` on success
+  - Re-fetches tree and status to reflect committed state
+  - Error handling with user-friendly error messages
+  - Loading state during commit ("Committing...")
+  - Form validation (empty message check)
+  - Cancel button to close without committing
+- Updated `ui/src/components/CreateFileDialog.css`:
+  - Added shared styles for CommitDialog: `.dialog-textarea`, `.dialog-body`, `.dialog-buttons`
+  - Added commit summary styles with color-coded badges matching PendingChanges
+  - Disabled button styles (opacity: 0.5, cursor: not-allowed)
+  - Light/dark mode support for new elements
+- Updated `ui/src/components/TopBar.tsx`:
+  - Changed pending badge from `<span>` to `<button>` element
+  - Added `onOpenPendingChanges` prop to TopBar interface
+  - Pending badge click calls `onOpenPendingChanges()` callback
+  - Updated tooltip: "X pending changes (click to review)"
+- Updated `ui/src/components/TopBar.css`:
+  - Added button-specific styles to `.topbar-pending-badge`: border: none, cursor: pointer
+  - Added hover state: darker blue background (#2563eb)
+  - Transition effect for smooth hover animation
+- Updated `ui/src/components/Layout.tsx`:
+  - Added `showPendingChanges` state (boolean)
+  - Passed `onOpenPendingChanges={() => setShowPendingChanges(true)}` to TopBar
+  - Rendered `<PendingChanges>` component at bottom of layout
+  - Badge click opens panel, panel close button hides it
+- Created comprehensive test suites:
+  - `ui/src/components/PendingChanges.test.tsx` — 15 tests
+  - `ui/src/components/CommitDialog.test.tsx` — 18 tests
+  - Custom TestWrapper component for test setup with providers
+  - ChangesSetter helper to pre-populate pending changes in tests
+
+**Files Created:**
+- `ui/src/components/PendingChanges.tsx`
+- `ui/src/components/PendingChanges.css`
+- `ui/src/components/PendingChanges.test.tsx`
+- `ui/src/components/CommitDialog.tsx`
+- `ui/src/components/CommitDialog.test.tsx`
+
+**Files Modified:**
+- `ui/src/api/client.ts` (added 4 new functions)
+- `ui/src/components/CreateFileDialog.css` (added shared dialog styles)
+- `ui/src/components/TopBar.tsx` (made badge clickable)
+- `ui/src/components/TopBar.css` (added button styles)
+- `ui/src/components/Layout.tsx` (integrated PendingChanges panel)
+
+**Test Results:**
+- ✓ All 58 Go tests passed (cli, git, server packages)
+- ✓ Frontend builds successfully (`npm run build`)
+- ✓ Go binary builds with embedded frontend (13M)
+- ✓ `make build` succeeded
+- ✓ PendingChanges tests: 15 tests covering all functionality
+- ✓ CommitDialog tests: 18 tests covering all functionality
+
+**Vitest Test Coverage:**
+
+**PendingChanges (15 tests):**
+1. Does not render when isOpen is false
+2. Renders modal with title when open
+3. Closes on close button click
+4. Closes on overlay click
+5. Does not close when clicking inside dialog content
+6. Shows "No pending changes" when no changes
+7. Shows count of pending changes in title
+8. Groups changes by type (created)
+9. Groups changes by type (modified)
+10. Groups changes by type (deleted)
+11. Groups changes by type (moved)
+12. Shows file path for created files
+13. Shows old and new paths for moved files
+14. Shows discard button for each change
+15. Opens commit dialog when commit button is clicked
+16. Disables commit button when no changes
+
+**CommitDialog (18 tests):**
+1. Does not render when isOpen is false
+2. Renders with commit message input field
+3. Shows summary of changes count
+4. Shows breakdown by change type
+5. Closes on cancel button click
+6. Closes on overlay click
+7. Does not close when clicking inside dialog content
+8. Disables commit button when message is empty
+9. Enables commit button when message is filled
+10. Calls delete API for delete changes
+11. Calls move API for move changes
+12. Calls write API for create changes
+13. Calls write API for modify changes
+14. Calls commit API after applying all changes
+15. Calls onSuccess callback after successful commit
+16. Shows error message on commit failure
+17. Resets form after successful commit
+18. Executes operations in correct order (delete → move → write → commit)
+
+**Acceptance Criteria (Plan Step 21 / PRD 3.12):**
+- ✅ Badge shows count of pending changes (from Step 16, still working)
+- ✅ Badge click opens Review Changes panel
+- ✅ Panel lists changes grouped by type (created, modified, deleted, moved)
+- ✅ Each entry shows diff (file path, line count, old→new for moves)
+- ✅ Individual changes can be discarded via × button
+- ✅ "Commit" button opens CommitDialog
+- ✅ Commit dialog has message input field
+- ✅ Submitting calls write/delete/move endpoints then /api/commit
+- ✅ After commit, pending changes cleared via `clearChanges()`
+- ✅ Badge clears after successful commit (pending changes count becomes 0)
+- ✅ If commit fails, show error message and keep changes for retry
+
+**Architecture Notes:**
+- PendingChanges is a controlled modal component opened/closed by Layout
+- CommitDialog nested inside PendingChanges (opened by Commit button)
+- Both components use `usePendingChanges()` hook from Step 16 context
+- Badge in TopBar remains clickable button (not just display)
+- Badge visibility controlled by `pendingChangesCount > 0` condition
+- File operations executed in specific order to avoid conflicts:
+  1. Deletes (remove files from disk)
+  2. Moves (rename/relocate files)
+  3. Writes (create new or modify existing files)
+  4. Commit (stage all changes and create git commit)
+- API calls sequential (await in for loops) to ensure correct ordering
+- Error handling: if any operation fails, show error and abort (don't clear changes)
+- Success flow: commit → clearChanges → re-fetch tree + status → close dialogs
+- All components support light/dark mode via CSS custom properties
+- Type-safe integration with TypeScript strict mode
+- Backend endpoints from Step 20 fully utilized
+
+**Next Step:** Step 22 - Search (fuzzy filename + full-text content)
+
+---
+
