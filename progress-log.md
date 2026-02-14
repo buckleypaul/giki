@@ -2292,3 +2292,83 @@ Build: ✓ Successful (single binary with embedded frontend)
 **Next Step:** Step 25 - Authentication and Configuration (PATs for private repos, config file support)
 
 ---
+
+## Step 25: Authentication and Configuration
+*Date: 2026-02-14*
+*Commit: b2cb702*
+
+**Summary:**
+Implemented authentication and configuration support for accessing private repositories. Added support for Personal Access Tokens (PATs) via config file, environment variables, and CLI flags with proper precedence handling.
+
+**Implementation Details:**
+
+*Configuration Package (internal/config/)*
+- Created config.go with TOML-based configuration loading
+- Config file location: ~/.config/giki/config.toml
+- Supports github_token and gitlab_token fields
+- Precedence: CLI flag (--token) > config file > env var (GIKI_GITHUB_TOKEN, GIKI_GITLAB_TOKEN)
+- Token resolution methods return both token value and source (for debugging/logging)
+- Gracefully handles missing config file (returns empty config, not an error)
+
+*CLI Integration (internal/cli/root.go)*
+- Added --token / -t flag for passing PAT on command line
+- Config loading integrated into startup flow
+- Token resolution based on repository host (github.com → GitHub token, gitlab.com → GitLab token)
+- Tokens passed to clone/pull operations for authenticated access
+
+*Git Authentication (internal/git/clone.go)*
+- Added CloneRemoteWithAuth() - clone with optional authentication
+- Added PullExistingWithAuth() - pull with optional authentication
+- Existing CloneRemote() and PullExisting() now delegate to auth versions with empty token
+- Uses go-git's http.BasicAuth with token as username (standard for GitHub/GitLab PATs)
+- Empty token means public/unauthenticated access (existing behavior preserved)
+
+*Testing:*
+- Config package: 12 new tests covering file loading, TOML parsing, precedence, env vars
+- All tests verify token source tracking (CLI/config/env/none)
+- Tests verify config file loading from non-existent files returns empty config
+- Tests verify invalid TOML returns error
+- All existing tests continue to pass (no breaking changes)
+
+**Go Tests:**
+All internal/config tests passing (12 new tests)
+All internal/git tests passing (existing clone tests verify new functions)
+All internal/cli tests passing
+All internal/server tests passing
+
+**Test Results:**
+Go tests: 12 new tests in config_test.go, all passing
+Total: All tests passing (100% pass rate)
+Build: ✓ Successful (single binary with embedded frontend)
+
+**Acceptance Criteria (Plan Step 25 / PRD 3.16):**
+- ✅ Config file at ~/.config/giki/config.toml with TOML format
+- ✅ Environment variables: GIKI_GITHUB_TOKEN, GIKI_GITLAB_TOKEN
+- ✅ CLI flag: --token / -t
+- ✅ Correct precedence: CLI flag > config file > env var
+- ✅ Token passed to clone/pull operations via go-git BasicAuth
+- ✅ Public repos continue to work without tokens
+- ✅ Private repos accessible with valid PAT
+- ✅ All tests passing (Go + Frontend)
+
+**Architecture Notes:**
+- Config loading happens at CLI startup (before any git operations)
+- Token resolution is lazy - only resolved when needed (during clone/pull)
+- Host detection is simple string matching (github.com vs gitlab.com)
+- For other git hosts, tokens can still be passed via CLI flag
+- Token source tracking (CLI/config/env/none) enables future debugging/logging features
+- Backward compatible: all existing functionality works without config file or tokens
+- Uses go-toml/v2 for TOML parsing (industry standard, well-maintained)
+- BasicAuth with token-as-username is standard practice for GitHub/GitLab PATs
+
+**Files Changed:**
+- internal/config/config.go (new, 120 lines)
+- internal/config/config_test.go (new, 195 lines)
+- internal/cli/root.go (modified, +23 lines: token flag, config loading, auth integration)
+- internal/git/clone.go (modified, +45 lines: WithAuth variants, BasicAuth support)
+- go.mod (modified, +1 dependency: github.com/pelletier/go-toml/v2)
+- go.sum (modified, dependency checksums)
+
+**Next Step:** Step 26 - Goreleaser + Homebrew tap + CI (distribution and release automation)
+
+---
