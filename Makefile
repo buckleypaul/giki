@@ -16,8 +16,8 @@ build: frontend-build
 dev:
 	GIKI_DEV=1 go run ./cmd/giki .
 
-# Run Go tests
-test:
+# Run Go tests (requires frontend to be built for ui package compilation)
+test: frontend-build
 	go test -v ./...
 
 # Clean build artifacts

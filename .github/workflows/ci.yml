@@ -25,11 +25,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Run Go tests
-        run: go test -v ./...
-
       - name: Build frontend
         run: make frontend-build
+
+      - name: Run Go tests
+        run: go test -v ./...
 
       - name: Run frontend tests
         run: cd ui && npm test
