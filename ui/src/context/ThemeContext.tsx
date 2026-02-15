@@ -73,6 +73,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       newProps.add(prop);
     }
 
+    // NEW: Set all font properties if defined
+    if (theme.fonts) {
+      for (const [key, value] of Object.entries(theme.fonts)) {
+        const prop = `--${key}`;
+        style.setProperty(prop, value);
+        newProps.add(prop);
+      }
+    }
+
     // Clean up properties that were set previously but not in the new theme
     for (const prop of appliedPropsRef.current) {
       if (!newProps.has(prop)) {

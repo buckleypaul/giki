@@ -264,4 +264,93 @@ describe('ThemeContext', () => {
       expect(ids).toContain('terminal-dark');
     });
   });
+
+  describe('Font property application', () => {
+    it('applies font properties from theme to DOM', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ThemeProvider>{children}</ThemeProvider>
+      );
+
+      const { result } = renderHook(() => useTheme(), { wrapper });
+
+      act(() => {
+        result.current.setThemeId('terminal-dark');
+      });
+
+      expect(document.documentElement.style.setProperty).toHaveBeenCalledWith(
+        '--font-family',
+        "'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace"
+      );
+    });
+
+    it('applies font properties when theme has fonts object', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ThemeProvider>{children}</ThemeProvider>
+      );
+
+      const { result } = renderHook(() => useTheme(), { wrapper });
+
+      act(() => {
+        result.current.setThemeId('terminal-light');
+      });
+
+      expect(document.documentElement.style.setProperty).toHaveBeenCalledWith(
+        '--font-family',
+        expect.stringContaining('Monaco')
+      );
+    });
+
+    it('does not apply font properties when theme does not define fonts', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ThemeProvider>{children}</ThemeProvider>
+      );
+
+      const { result } = renderHook(() => useTheme(), { wrapper });
+
+      // Clear all previous calls
+      vi.clearAllMocks();
+
+      act(() => {
+        result.current.setThemeId('light');
+      });
+
+      // Font properties should not be applied for themes without fonts
+      // We can verify by checking that --font-family was not set with any value
+      const fontFamilyCalls = (
+        document.documentElement.style.setProperty as any
+      ).mock.calls.filter((call: any[]) => call[0] === '--font-family');
+      expect(fontFamilyCalls.length).toBe(0);
+    });
+
+    it('cleans up font properties when switching from theme with fonts to theme without fonts', () => {
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <ThemeProvider>{children}</ThemeProvider>
+      );
+
+      const { result } = renderHook(() => useTheme(), { wrapper });
+
+      // First switch to a theme with fonts
+      act(() => {
+        result.current.setThemeId('terminal-dark');
+      });
+
+      expect(document.documentElement.style.setProperty).toHaveBeenCalledWith(
+        '--font-family',
+        expect.any(String)
+      );
+
+      // Clear mocks to see what happens next
+      vi.clearAllMocks();
+
+      // Then switch to a theme without fonts
+      act(() => {
+        result.current.setThemeId('light');
+      });
+
+      // Font properties should be removed
+      expect(document.documentElement.style.removeProperty).toHaveBeenCalledWith(
+        '--font-family'
+      );
+    });
+  });
 });
