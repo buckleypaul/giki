@@ -45,8 +45,8 @@ const REQUIRED_COLOR_KEYS = [
 ];
 
 describe('built-in themes', () => {
-  it('exports exactly 10 themes', () => {
-    expect(builtinThemes).toHaveLength(10);
+  it('exports exactly 11 themes', () => {
+    expect(builtinThemes).toHaveLength(11);
   });
 
   it('has unique IDs', () => {
@@ -151,5 +151,34 @@ describe('Terminal Dark theme', () => {
     expect(terminalDark.colors['bg-primary']).toBe('#000000');
     expect(terminalDark.colors['text-primary']).toBe('#ffffff');
     expect(terminalDark.colors['bg-secondary']).toBe('#0a0a0a');
+  });
+});
+
+describe('Terminal Light theme', () => {
+  it('should exist in builtin themes', () => {
+    const terminalLight = builtinThemes.find((t) => t.id === 'terminal-light');
+    expect(terminalLight).toBeDefined();
+  });
+
+  it('should have correct metadata', () => {
+    const terminalLight = builtinThemes.find((t) => t.id === 'terminal-light')!;
+    expect(terminalLight.name).toBe('Terminal Light');
+    expect(terminalLight.author).toBe('Giki');
+    expect(terminalLight.type).toBe('light');
+    expect(terminalLight.highlightTheme).toBe('github');
+  });
+
+  it('should have monospace font', () => {
+    const terminalLight = builtinThemes.find((t) => t.id === 'terminal-light')!;
+    expect(terminalLight.fonts).toBeDefined();
+    expect(terminalLight.fonts?.['font-family']).toContain('Monaco');
+    expect(terminalLight.fonts?.['font-family']).toContain('monospace');
+  });
+
+  it('should have terminal color palette', () => {
+    const terminalLight = builtinThemes.find((t) => t.id === 'terminal-light')!;
+    expect(terminalLight.colors['bg-primary']).toBe('#ffffff');
+    expect(terminalLight.colors['text-primary']).toBe('#000000');
+    expect(terminalLight.colors['bg-secondary']).toBe('#f5f5f5');
   });
 });

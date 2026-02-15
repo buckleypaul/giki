@@ -248,14 +248,14 @@ describe('ThemeContext', () => {
   });
 
   describe('availableThemes', () => {
-    it('includes all 10 built-in themes', () => {
+    it('includes all 11 built-in themes', () => {
       const wrapper = ({ children }: { children: ReactNode }) => (
         <ThemeProvider>{children}</ThemeProvider>
       );
 
       const { result } = renderHook(() => useTheme(), { wrapper });
 
-      expect(result.current.availableThemes.length).toBe(10);
+      expect(result.current.availableThemes.length).toBe(11);
       const ids = result.current.availableThemes.map((t) => t.id);
       expect(ids).toContain('light');
       expect(ids).toContain('dark');
