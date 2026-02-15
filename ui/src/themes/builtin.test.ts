@@ -45,8 +45,8 @@ const REQUIRED_COLOR_KEYS = [
 ];
 
 describe('built-in themes', () => {
-  it('exports exactly 9 themes', () => {
-    expect(builtinThemes).toHaveLength(9);
+  it('exports exactly 10 themes', () => {
+    expect(builtinThemes).toHaveLength(10);
   });
 
   it('has unique IDs', () => {
@@ -122,5 +122,34 @@ describe('ThemeDefinition interface', () => {
     };
 
     expect(themeWithoutFonts.fonts).toBeUndefined();
+  });
+});
+
+describe('Terminal Dark theme', () => {
+  it('should exist in builtin themes', () => {
+    const terminalDark = builtinThemes.find((t) => t.id === 'terminal-dark');
+    expect(terminalDark).toBeDefined();
+  });
+
+  it('should have correct metadata', () => {
+    const terminalDark = builtinThemes.find((t) => t.id === 'terminal-dark')!;
+    expect(terminalDark.name).toBe('Terminal Dark');
+    expect(terminalDark.author).toBe('Giki');
+    expect(terminalDark.type).toBe('dark');
+    expect(terminalDark.highlightTheme).toBe('monokai');
+  });
+
+  it('should have monospace font', () => {
+    const terminalDark = builtinThemes.find((t) => t.id === 'terminal-dark')!;
+    expect(terminalDark.fonts).toBeDefined();
+    expect(terminalDark.fonts?.['font-family']).toContain('Monaco');
+    expect(terminalDark.fonts?.['font-family']).toContain('monospace');
+  });
+
+  it('should have terminal color palette', () => {
+    const terminalDark = builtinThemes.find((t) => t.id === 'terminal-dark')!;
+    expect(terminalDark.colors['bg-primary']).toBe('#000000');
+    expect(terminalDark.colors['text-primary']).toBe('#ffffff');
+    expect(terminalDark.colors['bg-secondary']).toBe('#0a0a0a');
   });
 });

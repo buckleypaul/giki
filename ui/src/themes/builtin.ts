@@ -423,6 +423,56 @@ const catppuccinMocha: ThemeDefinition = {
   },
 };
 
+const terminalDark: ThemeDefinition = {
+  id: 'terminal-dark',
+  name: 'Terminal Dark',
+  author: 'Giki',
+  type: 'dark',
+  highlightTheme: 'monokai',
+  fonts: {
+    'font-family': "'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace",
+  },
+  colors: {
+    'bg-primary': '#000000',
+    'bg-secondary': '#0a0a0a',
+    'bg-tertiary': '#1a1a1a',
+    'bg-hover': 'rgba(255, 255, 255, 0.1)',
+    'bg-active': 'rgba(255, 255, 255, 0.15)',
+    'text-primary': '#ffffff',
+    'text-secondary': '#b0b0b0',
+    'text-tertiary': '#808080',
+    'text-inverse': '#000000',
+    'border-color': '#333333',
+    'border-color-light': '#1a1a1a',
+    'accent-color': '#00ff00',
+    'accent-hover': '#00cc00',
+    'accent-active': '#009900',
+    'color-success': '#00ff00',
+    'color-warning': '#ffff00',
+    'color-error': '#ff0000',
+    'color-info': '#00ffff',
+    'code-bg': '#0a0a0a',
+    'code-border': '#333333',
+    'code-text': '#ffffff',
+    'link-color': '#00ffff',
+    'link-hover': '#00cccc',
+    'link-visited': '#00aaaa',
+    'shadow-sm': '0 1px 2px rgba(0, 0, 0, 0.5)',
+    'shadow-md': '0 4px 6px rgba(0, 0, 0, 0.6)',
+    'shadow-lg': '0 10px 15px rgba(0, 0, 0, 0.7)',
+    'overlay-bg': 'rgba(0, 0, 0, 0.8)',
+    'hover-bg': 'rgba(255, 255, 255, 0.1)',
+    'error-color': '#ff0000',
+    'primary-color': '#00ff00',
+    'primary-hover': '#00cc00',
+    'table-header-bg': '#0a0a0a',
+    'table-alt-bg': '#050505',
+    'spinner-track': '#333333',
+    'spinner-color': '#00ff00',
+    'link-color-alpha': 'rgba(0, 255, 255, 0.15)',
+  },
+};
+
 export const builtinThemes: ThemeDefinition[] = [
   light,
   dark,
@@ -433,6 +483,7 @@ export const builtinThemes: ThemeDefinition[] = [
   catppuccinFrappe,
   catppuccinMacchiato,
   catppuccinMocha,
+  terminalDark,
 ];
 
 export const builtinThemeMap = new Map<string, ThemeDefinition>(

@@ -248,19 +248,20 @@ describe('ThemeContext', () => {
   });
 
   describe('availableThemes', () => {
-    it('includes all 9 built-in themes', () => {
+    it('includes all 10 built-in themes', () => {
       const wrapper = ({ children }: { children: ReactNode }) => (
         <ThemeProvider>{children}</ThemeProvider>
       );
 
       const { result } = renderHook(() => useTheme(), { wrapper });
 
-      expect(result.current.availableThemes.length).toBe(9);
+      expect(result.current.availableThemes.length).toBe(10);
       const ids = result.current.availableThemes.map((t) => t.id);
       expect(ids).toContain('light');
       expect(ids).toContain('dark');
       expect(ids).toContain('dracula');
       expect(ids).toContain('catppuccin-mocha');
+      expect(ids).toContain('terminal-dark');
     });
   });
 });
