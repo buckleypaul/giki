@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Giki is a Go CLI tool that turns any git repository into a browsable wiki in the browser. It combines a Go backend (using go-git) with a React frontend (built with Vite) embedded into a single distributable binary.
 
+**Go module**: `github.com/buckleypaul/giki`
+
 ## Build & Development Commands
 
 ### Production Build
@@ -38,6 +40,43 @@ cd ui && npm test       # Run frontend Vitest tests
 make clean              # Remove giki binary, ui/dist/, ui/node_modules/
 ```
 
+## CLI Usage
+
+```bash
+giki [path-or-url]           # Open a local repo or clone a remote one
+giki .                       # Open current directory
+giki /path/to/repo           # Open a specific local repo
+giki https://github.com/o/r  # Clone and open a remote repo
+giki version                 # Print version info
+```
+
+### Flags
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--port` | `-p` | 4242 | Port to run the server on |
+| `--branch` | `-b` | HEAD | Branch to browse |
+| `--token` | `-t` | (none) | Personal access token (GitHub or GitLab) |
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `GIKI_DEV=1` | Enable dev mode (proxy to Vite dev server) |
+| `GIKI_GITHUB_TOKEN` | GitHub personal access token |
+| `GIKI_GITLAB_TOKEN` | GitLab personal access token |
+
+**Token precedence**: CLI flag > config file > environment variable
+
+### Configuration File
+
+Located at `~/.config/giki/config.toml`:
+
+```toml
+github_token = "ghp_..."
+gitlab_token = "glpat-..."
+```
+
 ## Project Architecture
 
 ### Directory Structure
@@ -46,9 +85,10 @@ cmd/giki/               # CLI entry point
 internal/cli/           # Cobra-based CLI (flags, args, validation)
 internal/server/        # HTTP server + API handlers
 internal/git/           # Git operations via go-git (GitProvider interface)
-internal/config/        # Configuration (not yet implemented)
+internal/config/        # Configuration (~/.config/giki/config.toml)
 ui/                     # React + TypeScript frontend (Vite)
 ui/embed.go             # Embeds ui/dist/ into Go binary
+e2e/                    # Playwright end-to-end tests
 ```
 
 ### Key Architectural Decisions
@@ -73,14 +113,23 @@ All backend endpoints under `/api/`:
 | `GET /api/file/<path>?branch=<branch>` | Raw file content with Content-Type detection |
 | `GET /api/branches` | List of branches (JSON array with isDefault flag) |
 | `GET /api/status` | Repo metadata (source path, branch, isDirty flag) |
-
-Future endpoints for editing/committing will be added in later steps.
+| `POST /api/write` | Write/create a file (body: `{path, content, branch}`) |
+| `POST /api/delete` | Delete a file (body: `{path, branch}`) |
+| `POST /api/move` | Move/rename a file (body: `{oldPath, newPath, branch}`) |
+| `POST /api/move-folder` | Move/rename a folder and all contents |
+| `POST /api/commit` | Commit pending changes (body: `{message, changes}`) |
+| `GET /api/search?q=<query>&branch=<branch>` | Search files by name or content |
+| `GET /api/themes` | List user-installed themes from `~/.config/giki/themes/` |
 
 ### Frontend Stack
 
 - **React Router**: Client-side routing with URL-based navigation
-- **Markdown**: `react-markdown` + `remark-gfm` (GitHub Flavored Markdown) + `rehype-highlight` (syntax highlighting)
-- **Code Editor**: CodeMirror 6 (to be implemented in Step 17)
+- **Markdown**: `react-markdown` + `remark-gfm` + `rehype-highlight` + `rehype-slug`
+- **Code Editor**: CodeMirror 6 (`@uiw/react-codemirror` + `@codemirror/lang-markdown`)
+- **Syntax Highlighting**: `highlight.js` with dynamic theme switching
+- **State Management**: React contexts — `BranchContext`, `PendingChangesContext`, `ThemeContext`
+- **Search**: `Cmd+K` / `Ctrl+K` opens search panel (filename + content search)
+- **Themes**: Light/dark mode + user-installed highlight.js themes from `~/.config/giki/themes/`
 - **Testing**: Vitest with `@testing-library/react`
 
 ### Go Backend Stack
@@ -101,9 +150,7 @@ This project follows a granular step-by-step implementation plan (`plan.md`). Ea
 
 **CRITICAL**: One step = one commit. Do not proceed to the next step until the current step is fully complete, tested, and committed. See `MEMORY.md` for the step workflow.
 
-**Current Progress**: Check `progress-log.md` for completed steps. As of Step 14, read-only browsing is complete (layout, file tree, markdown/code/image rendering, URL routing, directory listings).
-
-**Next Steps**: Branch selection (Step 15), editing features (Steps 16-21), search/theming/remote (Steps 22-25), distribution (Steps 26-27).
+**Current Progress**: Check `progress-log.md` for the latest completed steps.
 
 ### Living Documents
 
@@ -152,8 +199,14 @@ Users can rename/move folders via the edit button (✎) in the sidebar:
 ### Frontend Tests (Vitest)
 - **Component tests**: Render components with mock data, verify DOM output
 - **Integration tests**: Mock API calls with `vi.mock()`, verify component behavior
-- All tests must pass before commit: `npm test`
+- All tests must pass before commit: `cd ui && npm test`
 - Use `@testing-library/react` for user-centric testing
+
+### End-to-End Tests (Playwright)
+- Located in `e2e/tests/` with fixture repo at `e2e/fixtures/test-repo`
+- Runs against a real Giki server on port 4243
+- Multi-browser: Chromium, Firefox, WebKit
+- Run with: `cd e2e && npx playwright test`
 
 ### Test Coverage Expectations
 - New functions/methods should have unit tests covering success and error cases
@@ -162,76 +215,17 @@ Users can rename/move folders via the edit button (✎) in the sidebar:
 
 ## Release Process
 
-Giki uses [GoReleaser](https://goreleaser.com/) with GitHub Actions to automate releases. When a version tag is pushed, the workflow automatically builds binaries, creates a GitHub release, and updates the Homebrew tap.
-
-### Creating a New Release
-
-**Prerequisites:**
-1. All tests must pass (`make test` and `cd ui && npm test`)
-2. Working tree must be clean (no uncommitted changes)
-3. Code must be pushed to `main` branch
-
-**Steps:**
+Giki uses GoReleaser + GitHub Actions. Push an annotated tag to trigger a release:
 
 ```bash
-# 1. Verify clean state
-git status
-make test
-cd ui && npm test && cd ..
-
-# 2. Create an annotated tag (use semantic versioning: vMAJOR.MINOR.PATCH)
-git tag -a v0.X.Y -m "Release v0.X.Y
-
-- Feature or fix summary line 1
-- Feature or fix summary line 2
-- Additional notable changes"
-
-# 3. Push the tag to trigger the release workflow
+git tag -a v0.X.Y -m "Release v0.X.Y: summary of changes"
 git push origin v0.X.Y
-
-# 4. Monitor the workflow progress
-gh run list --workflow=release.yml --limit 1
-gh run watch  # Watch the current run
 ```
 
-**What Happens Automatically:**
+This builds cross-platform binaries (Linux/macOS/Windows), creates a GitHub release, and updates the Homebrew tap (`buckleypaul/homebrew-tap`). Version info is injected via ldflags into `internal/cli/version.go`.
 
-The `.github/workflows/release.yml` workflow triggers on tag push and:
-
-1. **Builds Frontend**: Runs `make frontend-build` to compile React app to `ui/dist/`
-2. **Compiles Binaries**: Creates executables for:
-   - Linux (amd64, arm64)
-   - macOS (amd64, arm64)
-   - Windows (amd64)
-3. **Creates Archives**: Bundles binaries with LICENSE and README as `.tar.gz` (or `.zip` for Windows)
-4. **Generates Checksums**: Creates `checksums.txt` for all artifacts
-5. **Creates GitHub Release**: Publishes release with changelog and downloadable assets
-6. **Updates Homebrew Tap**: Pushes updated formula to `buckleypaul/homebrew-tap`
-
-**Configuration Files:**
-- `.goreleaser.yaml`: GoReleaser configuration (build targets, archive format, Homebrew tap settings)
-- `.github/workflows/release.yml`: GitHub Actions workflow triggered by tags
-
-**Verifying the Release:**
-
-```bash
-# Check GitHub release page
-open https://github.com/buckleypaul/giki/releases/tag/v0.X.Y
-
-# Test Homebrew installation (requires waiting ~5-10 minutes for Homebrew to sync)
-brew uninstall giki  # If previously installed
-brew install buckleypaul/tap/giki
-giki version
-```
-
-**Version Injection:**
-
-GoReleaser injects version metadata into the binary at build time via ldflags:
-- `Version`: Git tag (e.g., "v0.3.0")
-- `Commit`: Git commit SHA
-- `Date`: Build timestamp
-
-These are displayed via `giki version` command (defined in `internal/cli/version.go`).
+**Config files**: `.goreleaser.yaml`, `.github/workflows/release.yml`
+**CI workflow**: `.github/workflows/ci.yml` (runs tests on push/PR)
 
 ## Git Workflow
 
