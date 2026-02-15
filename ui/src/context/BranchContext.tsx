@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import { fetchStatus } from '../api/client';
 
@@ -25,8 +25,13 @@ export function BranchProvider({ children }: { children: ReactNode }): ReactElem
     loadInitialBranch();
   }, []);
 
+  const value = useMemo(
+    () => ({ selectedBranch, setSelectedBranch }),
+    [selectedBranch]
+  );
+
   return (
-    <BranchContext.Provider value={{ selectedBranch, setSelectedBranch }}>
+    <BranchContext.Provider value={value}>
       {children}
     </BranchContext.Provider>
   );

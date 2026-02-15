@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 
 export type PendingChange = {
@@ -21,30 +21,30 @@ const PendingChangesContext = createContext<PendingChangesContextType | undefine
 export function PendingChangesProvider({ children }: { children: ReactNode }) {
   const [changes, setChanges] = useState<PendingChange[]>([]);
 
-  const addChange = (change: PendingChange) => {
+  const addChange = useCallback((change: PendingChange) => {
     setChanges((prev) => {
       // Remove any existing change for this path (update in-place)
       const filtered = prev.filter((c) => c.path !== change.path);
       return [...filtered, change];
     });
-  };
+  }, []);
 
-  const removeChange = (path: string) => {
+  const removeChange = useCallback((path: string) => {
     setChanges((prev) => prev.filter((c) => c.path !== path));
-  };
+  }, []);
 
-  const getChanges = () => {
+  const getChanges = useCallback(() => {
     return changes;
-  };
+  }, [changes]);
 
-  const clearChanges = () => {
+  const clearChanges = useCallback(() => {
     setChanges([]);
-  };
+  }, []);
 
-  const getModifiedContent = (path: string): string | null => {
+  const getModifiedContent = useCallback((path: string): string | null => {
     const change = changes.find((c) => c.path === path && c.type === 'modify');
     return change?.content ?? null;
-  };
+  }, [changes]);
 
   return (
     <PendingChangesContext.Provider

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { ThemeDefinition } from '../themes/types';
 import { builtinThemes, builtinThemeMap } from '../themes/builtin';
@@ -99,14 +99,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('giki-theme', theme.id);
   }, [theme]);
 
-  const setThemeId = (id: string) => {
+  const setThemeId = useCallback((id: string) => {
     if (allThemes.some((t) => t.id === id)) {
       setThemeIdState(id);
     }
-  };
+  }, [allThemes]);
+
+  const value = useMemo(
+    () => ({ themeId, theme, setThemeId, availableThemes: allThemes }),
+    [themeId, theme, setThemeId, allThemes]
+  );
 
   return (
-    <ThemeContext.Provider value={{ themeId, theme, setThemeId, availableThemes: allThemes }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );
