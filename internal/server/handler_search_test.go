@@ -48,7 +48,7 @@ func TestHandleSearch_Filename(t *testing.T) {
 		}
 	}
 
-	if _, err := w.Commit("initial commit", &gogit.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -140,7 +140,7 @@ Then run the server.`,
 		}
 	}
 
-	if _, err := w.Commit("initial commit", &gogit.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -228,7 +228,7 @@ func TestHandleSearch_InvalidType(t *testing.T) {
 	if _, err := w.Add(".gitkeep"); err != nil {
 		t.Fatalf("failed to add file: %v", err)
 	}
-	if _, err := w.Commit("initial commit", &gogit.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -273,7 +273,7 @@ func TestHandleSearch_EmptyQuery(t *testing.T) {
 	if _, err := w.Add("README.md"); err != nil {
 		t.Fatalf("failed to add file: %v", err)
 	}
-	if _, err := w.Commit("initial commit", &gogit.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 

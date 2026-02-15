@@ -37,7 +37,7 @@ func TestHandleBranches_Integration(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	commit, err := w.Commit("initial commit", &gogit.CommitOptions{})
+	commit, err := w.Commit("initial commit", testCommitOptions())
 	if err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestHandleBranches_SingleBranch(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &gogit.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 

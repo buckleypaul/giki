@@ -39,7 +39,7 @@ func TestHandleFile_MarkdownFile(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &gogit.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -98,7 +98,7 @@ func TestHandleFile_NonexistentFile(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &gogit.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -162,7 +162,7 @@ func TestHandleFile_GoFile(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &gogit.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -233,7 +233,7 @@ func TestHandleFile_ImageFile(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &gogit.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -299,7 +299,7 @@ func TestHandleFile_NestedPath(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &gogit.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -357,7 +357,7 @@ func TestHandleFile_DirectoryRequest(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &gogit.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
