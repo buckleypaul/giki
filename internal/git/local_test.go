@@ -5,10 +5,23 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
+
+// testCommitOptions returns git.CommitOptions with a test author signature.
+func testCommitOptions() *git.CommitOptions {
+	return &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "Test Author",
+			Email: "test@example.com",
+			When:  time.Now(),
+		},
+	}
+}
 
 // createTestRepoWithCommit creates a git repository with an initial commit so HEAD exists.
 func createTestRepoWithCommit(t *testing.T, tempDir string) *git.Repository {
@@ -27,7 +40,7 @@ func createTestRepoWithCommit(t *testing.T, tempDir string) *git.Repository {
 	if _, err := w.Add(".gitkeep"); err != nil {
 		t.Fatalf("failed to add file: %v", err)
 	}
-	if _, err := w.Commit("Initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("Initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 	return repo
@@ -111,7 +124,7 @@ func TestNewLocalProvider_NonexistentBranch(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -151,7 +164,7 @@ func TestNewLocalProvider_HEADBranchResolves(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -192,7 +205,7 @@ func TestNewLocalProvider_ExplicitBranch(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	commit, err := w.Commit("initial commit", &git.CommitOptions{})
+	commit, err := w.Commit("initial commit", testCommitOptions())
 	if err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
@@ -272,7 +285,7 @@ func TestTree_KnownStructure(t *testing.T) {
 		}
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -377,7 +390,7 @@ build/
 		}
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -465,7 +478,7 @@ func TestTree_TrackedDotfilesIncluded(t *testing.T) {
 		}
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -550,7 +563,7 @@ func TestTree_SortOrderCorrect(t *testing.T) {
 		}
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -614,7 +627,7 @@ func TestFileContent_ReadKnownFile(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -658,7 +671,7 @@ func TestFileContent_NonexistentFile(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -706,7 +719,7 @@ func TestFileContent_Directory(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -749,7 +762,7 @@ func TestFileContent_PathTraversalBlocked(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -803,7 +816,7 @@ func TestFileContent_NestedFile(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -846,7 +859,7 @@ func TestBranches_MultipleBranches(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	commit, err := w.Commit("initial commit", &git.CommitOptions{})
+	commit, err := w.Commit("initial commit", testCommitOptions())
 	if err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
@@ -942,7 +955,7 @@ func TestBranches_SingleBranch(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -1001,7 +1014,7 @@ func TestStatus_CleanRepository(t *testing.T) {
 		t.Fatalf("failed to stage file: %v", err)
 	}
 
-	if _, err := worktree.Commit("Initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := worktree.Commit("Initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -1057,7 +1070,7 @@ func TestStatus_DirtyRepository(t *testing.T) {
 		t.Fatalf("failed to stage file: %v", err)
 	}
 
-	if _, err := worktree.Commit("Initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := worktree.Commit("Initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -1118,7 +1131,7 @@ func TestStatus_UntrackedFiles(t *testing.T) {
 		t.Fatalf("failed to stage file: %v", err)
 	}
 
-	if _, err := worktree.Commit("Initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := worktree.Commit("Initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -1170,7 +1183,7 @@ func TestTree_NonHEADBranch(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit on main", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit on main", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -1201,7 +1214,7 @@ func TestTree_NonHEADBranch(t *testing.T) {
 		t.Fatalf("failed to add feature file: %v", err)
 	}
 
-	if _, err := w.Commit("add feature file", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("add feature file", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit feature file: %v", err)
 	}
 
@@ -1282,7 +1295,7 @@ func TestFileContent_NonHEADBranch(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
@@ -1312,7 +1325,7 @@ func TestFileContent_NonHEADBranch(t *testing.T) {
 		t.Fatalf("failed to add modified file: %v", err)
 	}
 
-	if _, err := w.Commit("modify on feature", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("modify on feature", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit modified file: %v", err)
 	}
 
@@ -1373,7 +1386,7 @@ func TestFileContent_HEADBranchWithUncommittedChanges(t *testing.T) {
 		t.Fatalf("failed to add file: %v", err)
 	}
 
-	if _, err := w.Commit("initial commit", &git.CommitOptions{}); err != nil {
+	if _, err := w.Commit("initial commit", testCommitOptions()); err != nil {
 		t.Fatalf("failed to commit: %v", err)
 	}
 
