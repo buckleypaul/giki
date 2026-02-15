@@ -88,3 +88,39 @@ describe('built-in themes', () => {
     expect(builtinThemeMap.has('dark')).toBe(true);
   });
 });
+
+describe('ThemeDefinition interface', () => {
+  it('should allow optional fonts property', () => {
+    const themeWithFonts: ThemeDefinition = {
+      id: 'test',
+      name: 'Test',
+      author: 'Test',
+      type: 'dark',
+      highlightTheme: 'monokai',
+      colors: {
+        'bg-primary': '#000000',
+      },
+      fonts: {
+        'font-family': 'monospace',
+      },
+    };
+
+    expect(themeWithFonts.fonts).toBeDefined();
+    expect(themeWithFonts.fonts?.['font-family']).toBe('monospace');
+  });
+
+  it('should work without fonts property', () => {
+    const themeWithoutFonts: ThemeDefinition = {
+      id: 'test',
+      name: 'Test',
+      author: 'Test',
+      type: 'dark',
+      highlightTheme: 'monokai',
+      colors: {
+        'bg-primary': '#000000',
+      },
+    };
+
+    expect(themeWithoutFonts.fonts).toBeUndefined();
+  });
+});

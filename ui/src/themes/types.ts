@@ -5,4 +5,5 @@ export interface ThemeDefinition {
   type: 'light' | 'dark';
   highlightTheme: string;
   colors: Record<string, string>;
+  fonts?: Record<string, string>;
 }
